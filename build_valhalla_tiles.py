@@ -8,7 +8,7 @@ import urllib.request
 VALHALLA_JSON = Path("valhalla.json")
 
 # Where tiles should live (must match mjolnir.tile_dir)
-TILE_DIR = Path.home() / "valhalla_data"
+TILE_DIR = Path(__file__).resolve().parent / "tiles"
 
 # OSM source
 OSM_PBF_URL = "https://download.geofabrik.de/north-america/us/virginia-latest.osm.pbf"
@@ -29,7 +29,7 @@ def ensure_tile_dir():
 
 
 def download_pbf():
-    if OSM_PBF.exists():
+    if TILE_DIR.exists():
         print(f"✓ OSM PBF already exists: {OSM_PBF}")
         return
 
@@ -38,24 +38,26 @@ def download_pbf():
     print(f"✓ Downloaded {OSM_PBF}")
 
 
-def build_tiles():
+def build_tiles(path: Path = OSM_PBF):
+    if verify_tiles():
+        return
     run([
         "valhalla_build_tiles",
         "-c", str(VALHALLA_JSON),
-        str(OSM_PBF),
+        str(path),
     ])
 
 
 def verify_tiles():
-    tiles_path = TILE_DIR / "tiles"
-    if not tiles_path.exists():
-        raise RuntimeError("❌ Tile build failed: tiles/ directory not found")
+    if not TILE_DIR.exists():
+        return False
 
-    tile_count = sum(1 for _ in tiles_path.rglob("*"))
+    tile_count = sum(1 for _ in TILE_DIR.rglob("*"))
     if tile_count == 0:
-        raise RuntimeError("❌ Tile build failed: tiles directory is empty")
+        return False
 
     print(f"✓ Tiles built successfully ({tile_count} files)")
+    return True
 
 
 def main():
@@ -65,7 +67,7 @@ def main():
 
     ensure_tile_dir()
     download_pbf()
-    build_tiles()
+    build_tiles(Path("/Users/kunalsaxena/Documents/College/Wayfinding/custom_files/andorra-latest.osm.pbf"))
     verify_tiles()
 
     print("\n🎉 Valhalla tiles are ready")

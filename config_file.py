@@ -1,4 +1,13 @@
 from typing import Optional
+from pathlib import Path
+
+# Absolute project root
+ROOT = Path(__file__).resolve().parent
+
+VALHALLA_DATA = ROOT / "tiles"
+TRANSIT_DIR = ROOT / "transit"
+TRANSIT_FEEDS_DIR = ROOT / "transit_feeds"
+ELEVATION_DIR = ROOT / "elevation"
 
 config = {
     "mjolnir": {
@@ -7,40 +16,53 @@ config = {
         "use_lru_mem_cache": False,
         "lru_mem_cache_hard_control": False,
         "use_simple_mem_cache": False,
+
         "user_agent": Optional[str],
         "tile_url": Optional[str],
         "tile_url_gz": Optional[bool],
         "tile_url_user_pw": Optional[str],
         "concurrency": Optional[int],
-        "tile_dir": "/data/valhalla",
-        "tile_extract": "/data/valhalla/tiles.tar",
-        "traffic_extract": "/data/valhalla/traffic.tar",
+
+        # 🔴 FIXED PATHS
+        "tile_dir": str(VALHALLA_DATA),
+        "tile_extract": str(VALHALLA_DATA / "tiles.tar"),
+        "traffic_extract": str(VALHALLA_DATA / "traffic.tar"),
+
         "incident_dir": Optional[str],
         "incident_log": Optional[str],
         "shortcut_caching": Optional[bool],
         "graph_lua_name": Optional[str],
-        "admin": "/data/valhalla/admin.sqlite",
-        "landmarks": "/data/valhalla/landmarks.sqlite",
-        "timezone": "/data/valhalla/tz_world.sqlite",
-        "transit_dir": "/data/valhalla/transit",
-        "transit_feeds_dir": "/data/valhalla/transit_feeds",
+
+        "admin": str(VALHALLA_DATA / "admin.sqlite"),
+        "landmarks": str(VALHALLA_DATA / "landmarks.sqlite"),
+        "timezone": str(VALHALLA_DATA / "tz_world.sqlite"),
+
+        "transit_dir": str(TRANSIT_DIR),
+        "transit_feeds_dir": str(TRANSIT_FEEDS_DIR),
+
         "transit_bounding_box": Optional[str],
         "transit_pbf_limit": 20000,
+
         "hierarchy": True,
         "shortcuts": True,
+
         "keep_all_osm_node_ids": False,
         "keep_osm_node_ids": False,
+
         "include_platforms": False,
         "include_driveways": True,
         "include_construction": False,
         "include_bicycle": True,
         "include_pedestrian": True,
         "include_driving": True,
+
         "import_bike_share_stations": False,
         "global_synchronized_cache": False,
         "max_concurrent_reader_users": 1,
         "reclassify_links": True,
+
         "default_speeds_config": Optional[str],
+
         "data_processing": {
             "infer_internal_intersections": True,
             "infer_turn_channels": True,
@@ -53,6 +75,7 @@ config = {
             "use_rest_area": False,
             "scan_tar": False,
         },
+
         "logging": {
             "type": "std_out",
             "color": True,
@@ -61,8 +84,9 @@ config = {
             "max_archived_files": Optional[int],
         },
     },
+
     "additional_data": {
-        "elevation": "/data/valhalla/elevation/",
+        "elevation": str(ELEVATION_DIR),
         "elevation_url": Optional[str],
         "elevation_url_user_pw": Optional[str],
     },

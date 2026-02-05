@@ -1,4 +1,11 @@
+# Python
 .venv/
 __pycache__/
+*.pyc
 .DS_Store
-./custom_files/*
+
+# Valhalla / OSM / tiles
+custom_files/
+tiles/
+*.osm.pbf
+*.tar

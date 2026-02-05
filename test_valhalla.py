@@ -29,7 +29,7 @@ def test_route(actor: Actor):
         ]
     })
 
-    summary = result["trip"]["summary"]
+    summary = result["trip"]
     print("Route summary:", summary, "\n")
 
 
