@@ -5,14 +5,14 @@
     "use_lru_mem_cache": false,
     "lru_mem_cache_hard_control": false,
     "use_simple_mem_cache": false,
-    "tile_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles",
-    "tile_extract": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles/tiles.tar",
-    "traffic_extract": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles/traffic.tar",
-    "admin": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles/admin.sqlite",
-    "landmarks": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles/landmarks.sqlite",
-    "timezone": "/Users/kunalsaxena/Documents/College/Wayfinding/tiles/tz_world.sqlite",
-    "transit_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/transit",
-    "transit_feeds_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/transit_feeds",
+    "tile_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/tiles",
+    "tile_extract": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/tiles/tiles.tar",
+    "traffic_extract": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/tiles/traffic.tar",
+    "admin": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/valhalla/admin.sqlite",
+    "landmarks": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/valhalla/landmarks.sqlite",
+    "timezone": "/Users/kunalsaxena/Documents/College/Wayfinding/app/data/valhalla/tz_world.sqlite",
+    "transit_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/app/transit",
+    "transit_feeds_dir": "/Users/kunalsaxena/Documents/College/Wayfinding/app/transit_feeds",
     "transit_pbf_limit": 20000,
     "hierarchy": true,
     "shortcuts": true,
@@ -47,7 +47,7 @@
     }
   },
   "additional_data": {
-    "elevation": "/Users/kunalsaxena/Documents/College/Wayfinding/elevation"
+    "elevation": "/Users/kunalsaxena/Documents/College/Wayfinding/app/elevation"
   },
   "loki": {
     "actions": [
