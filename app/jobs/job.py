@@ -2,6 +2,7 @@ import uuid
 from enum import Enum
 from datetime import datetime
 from pathlib import Path
+import shutil
 
 from app.core.paths import BASE_JOBS_DIR
 
@@ -71,3 +72,6 @@ class Job:
     def mark_cancelled(self):
         self.status = JobStatus.CANCELLED
         self.finished_at = datetime.now()
+
+    def cleanup(self):
+        shutil.rmtree(self.job_dir, ignore_errors=True)

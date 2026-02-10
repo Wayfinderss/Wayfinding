@@ -1,4 +1,4 @@
-from typing import Dict, Any, Callable, List
+from typing import Dict, Any, Callable
 from pathlib import Path
 
 from valhalla import Actor
@@ -14,17 +14,19 @@ class ValhallaTestService(TestService):
     def run(
         self,
         config_path: Path,
-        tests: List[str],
+        tests: Dict[str, Dict[str, Any]],
         lat: float,
         lon: float,
     ) -> Dict[str, Any]:
         actor = self._load_actor(config_path)
 
-        # store coordinates for internal use
-        self.lat = lat
-        self.lon = lon
+        self.origin = {"lat": lat, "lon": lon}
+        self.default_target = {
+            "lat": lat + 0.001,
+            "lon": lon + 0.001,
+        }
 
-        test_registry: Dict[str, Callable[[Actor], Dict[str, Any]]] = {
+        test_registry: Dict[str, Callable[[Actor, Dict[str, Any]], Dict[str, Any]]] = {
             "route": self._test_route,
             "isochrone": self._test_isochrone,
             "matrix": self._test_matrix,
@@ -34,7 +36,7 @@ class ValhallaTestService(TestService):
 
         results: Dict[str, Any] = {}
 
-        for test_name in tests:
+        for test_name, test_args in tests.items():
             if test_name not in test_registry:
                 results[test_name] = {
                     "status": "skipped",
@@ -43,7 +45,7 @@ class ValhallaTestService(TestService):
                 continue
 
             try:
-                results[test_name] = test_registry[test_name](actor)
+                results[test_name] = test_registry[test_name](actor, test_args)
             except Exception as e:
                 results[test_name] = {
                     "status": "error",
@@ -52,8 +54,7 @@ class ValhallaTestService(TestService):
 
         return {
             "status": "ok",
-            "lat": self.lat,
-            "lon": self.lon,
+            "origin": self.origin,
             "tests": results,
         }
 
@@ -62,33 +63,40 @@ class ValhallaTestService(TestService):
     def _load_actor(self, config_path: Path) -> Actor:
         if not config_path.exists():
             raise FileNotFoundError(f"Missing valhalla.json at {config_path}")
-
         return Actor(str(config_path))
+
+    def _resolve_target(self, args: Dict[str, Any]) -> Dict[str, float]:
+        return args.get("target", self.default_target)
 
     # ---------------- tests ----------------
 
-    def _test_route(self, actor: Actor) -> Dict[str, Any]:
+    def _test_route(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
+        target = self._resolve_target(args)
+
         result = actor.route({
-            "costing": "pedestrian",
+            "costing": args.get("costing", "pedestrian"),
             "locations": [
-                {"lat": self.lat, "lon": self.lon},
-                {"lat": self.lat + 0.001, "lon": self.lon + 0.001},
+                self.origin,
+                target,
             ],
         })
 
         return {
             "status": "ok",
+            "origin": self.origin,
+            "target": target,
             "summary": result.get("trip"),
         }
 
-    def _test_isochrone(self, actor: Actor) -> Dict[str, Any]:
+    def _test_isochrone(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
         result = actor.isochrone({
-            "locations": [
-                {"lat": self.lat, "lon": self.lon}
-            ],
-            "costing": "pedestrian",
-            "contours": [{"time": 5, "color": "ff0000"}],
-            "polygons": True,
+            "locations": [self.origin],
+            "costing": args.get("costing", "pedestrian"),
+            "contours": [{
+                "time": args.get("time", 5),
+                "color": args.get("color", "ff0000"),
+            }],
+            "polygons": args.get("polygons", True),
         })
 
         return {
@@ -96,53 +104,60 @@ class ValhallaTestService(TestService):
             "features": len(result.get("features", [])),
         }
 
-    def _test_matrix(self, actor: Actor) -> Dict[str, Any]:
+    def _test_matrix(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
+        target = self._resolve_target(args)
+
         result = actor.matrix({
-            "costing": "pedestrian",
-            "sources": [
-                {"lat": self.lat, "lon": self.lon}
-            ],
-            "targets": [
-                {"lat": self.lat + 0.001, "lon": self.lon + 0.001}
-            ],
+            "costing": args.get("costing", "pedestrian"),
+            "sources": [self.origin],
+            "targets": [target],
         })
 
         return {
             "status": "ok",
+            "origin": self.origin,
+            "target": target,
             "result": result,
         }
 
-    def _test_height(self, actor: Actor) -> Dict[str, Any]:
+    def _test_height(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
+        target = self._resolve_target(args)
+
         result = actor.height({
             "shape": [
-                {"lat": self.lat, "lon": self.lon},
-                {"lat": self.lat + 0.001, "lon": self.lon + 0.001},
+                self.origin,
+                target,
             ],
-            "range": True,
+            "range": args.get("range", True),
         })
 
         return {
             "status": "ok",
+            "origin": self.origin,
+            "target": target,
             "result": result,
         }
 
-    def _test_expansion(self, actor: Actor) -> Dict[str, Any]:
+    def _test_expansion(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
+        target = self._resolve_target(args)
+
         result = actor.expansion({
             "action": "route",
-            "costing": "pedestrian",
+            "costing": args.get("costing", "pedestrian"),
             "locations": [
-                {"lat": self.lat, "lon": self.lon},
-                {"lat": self.lat + 0.001, "lon": self.lon + 0.001},
+                self.origin,
+                target,
             ],
-            "expansion_properties": [
-                "duration",
-                "edge_id",
-                "edge_status",
-            ],
+            "expansion_properties": args.get(
+                "properties",
+                ["duration", "edge_id", "edge_status"],
+            ),
         })
 
         return {
             "status": "ok",
+            "origin": self.origin,
+            "target": target,
             "algorithm": result.get("properties", {}).get("algorithm"),
             "edges": len(result.get("features", [])),
         }
