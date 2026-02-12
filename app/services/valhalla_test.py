@@ -72,7 +72,7 @@ class ValhallaTestService(TestService):
 
     def _test_route(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
         target = self._resolve_target(args)
-
+        print(f"Testing route from {self.origin} to {target}")
         result = actor.route({
             "costing": args.get("costing", "pedestrian"),
             "locations": [
@@ -161,3 +161,4 @@ class ValhallaTestService(TestService):
             "algorithm": result.get("properties", {}).get("algorithm"),
             "edges": len(result.get("features", [])),
         }
+
