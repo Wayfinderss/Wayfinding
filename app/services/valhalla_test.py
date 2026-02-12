@@ -72,7 +72,6 @@ class ValhallaTestService(TestService):
 
     def _test_route(self, actor: Actor, args: Dict[str, Any]) -> Dict[str, Any]:
         target = self._resolve_target(args)
-
         result = actor.route({
             "costing": args.get("costing", "pedestrian"),
             "locations": [
