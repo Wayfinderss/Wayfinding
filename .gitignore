@@ -27,7 +27,7 @@ Thumbs.db
 
 # Application data
 app/data/config.json
-app/data/custom_files/
+app/data/custom_files/*.pbf
 app/data/valhalla_tiles/
 
 # Testing
