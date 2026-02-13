@@ -1,34 +1,50 @@
 # Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environments
+# Virtual Environment
 .venv/
 venv/
 ENV/
 env/
 
-# IDEs
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
 # uv
 .uv/
 
+# IDEs
+.idea/
+
 # OS
 .DS_Store
+
+# Valhalla / OSM / tiles
+app/data/custom_files/
+tiles/
+*.osm.pbf
+*.tar
 Thumbs.db
 
 # Application data
 app/data/config.json
-app/data/custom_files/*.pbf
+app/data/custom_files/*.osm.pbf
 app/data/valhalla_tiles/
-
-# Testing
-.pytest_cache/
+duplicateways.txt
