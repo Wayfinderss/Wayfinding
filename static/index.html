@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wayfinding Demo</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .search-box { margin: 20px 0; }
+        input { width: 100%; padding: 10px; font-size: 16px; }
+        .suggestions { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
+        .suggestion { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .suggestion:hover { background: #f0f0f0; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+        #results { margin-top: 20px; padding: 20px; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Wayfinding Directions Demo</h1>
+    
+    <div class="search-box">
+        <label>Origin:</label>
+        <input type="text" id="origin" placeholder="Type address...">
+        <div id="origin-suggestions" class="suggestions" style="display:none;"></div>
+    </div>
+    
+    <div class="search-box">
+        <label>Destination:</label>
+        <input type="text" id="destination" placeholder="Type address...">
+        <div id="destination-suggestions" class="suggestions" style="display:none;"></div>
+    </div>
+    
+    <button onclick="getDirections()">Get Directions</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE = "http://localhost:8000";
+        let origin = null, destination = null;
+        let debounceTimer = null;
+        
+        // Debounced autocomplete
+        document.getElementById("origin").addEventListener("input", (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => searchAddress(e.target.value, "origin"), 300);
+        });
+        
+        document.getElementById("destination").addEventListener("input", (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => searchAddress(e.target.value, "destination"), 300);
+        });
+        
+        async function searchAddress(query, type) {
+            if (query.length < 3) {
+                document.getElementById(`${type}-suggestions`).style.display = "none";
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/geocode/autocomplete?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                showSuggestions(data.results, type);
+            } catch (e) {
+                console.error("Geocoding error:", e);
+            }
+        }
+
+        
+        
+        function showSuggestions(results, type) {
+            const container = document.getElementById(`${type}-suggestions`);
+            container.innerHTML = "";
+            
+            results.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "suggestion";
+                div.textContent = item.label || item.address;
+                div.onclick = () => selectAddress(item, type);
+                container.appendChild(div);
+            });
+            
+            container.style.display = results.length ? "block" : "none";
+        }
+        
+        function selectAddress(item, type) {
+            document.getElementById(type).value = item.label || item.address;
+            document.getElementById(`${type}-suggestions`).style.display = "none";
+            
+            if (type === "origin") origin = item;
+            else destination = item;
+        }
+        
+        
+        async function getDirections() {
+            if (!origin || !destination) {
+                alert("Please select both origin and destination");
+                return;
+            }
+            
+            // DEBUG: Log what we're sending
+            console.log("Origin object:", origin);
+            console.log("Destination object:", destination);
+            console.log("Origin lat:", origin.lat, "lon:", origin.lon);
+            console.log("Destination lat:", destination.lat, "lon:", destination.lon);
+            
+            // Validate coordinates before sending
+            if (!origin.lat || !origin.lon || !destination.lat || !destination.lon) {
+                alert(`Missing coordinates!\nOrigin: lat=${origin.lat}, lon=${origin.lon}\nDestination: lat=${destination.lat}, lon=${destination.lon}`);
+                return;
+            }
+            
+            document.getElementById("results").innerHTML = "Loading directions...";
+            
+            try {
+                const requestBody = {
+                    origin_lat: origin.lat,
+                    origin_lon: origin.lon,
+                    destination_lat: destination.lat,
+                    destination_lon: destination.lon,
+                };
+                
+                console.log("Sending request:", requestBody);
+                
+                const res = await fetch(`${API_BASE}/valhalla/directions`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    console.error("API Error:", errorData);
+                    document.getElementById("results").innerHTML = 
+                        `<pre>Error: ${res.status} ${res.statusText}\n${JSON.stringify(errorData, null, 2)}</pre>`;
+                    return;
+                }
+                
+                const data = await res.json();
+                console.log("Directions response:", data);
+                document.getElementById("results").innerHTML = 
+                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (e) {
+                console.error("Request error:", e);
+                document.getElementById("results").innerHTML = `Error: ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
