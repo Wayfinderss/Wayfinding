@@ -1,10 +1,11 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from app.services.valhalla_test import ValhallaTestService
 from app.core.paths import DATA_DIR
 from app.controllers.valhalla_controller import ValhallaPipelineController
 from app.jobs.job_handler import JobManager
+from app.api.blocked_streets_api import store as blocked_streets_store
 
 router = APIRouter(prefix="/valhalla", tags=["valhalla"])
 
@@ -70,5 +71,13 @@ def get_directions(request: DirectionsRequest):
         lat=request.origin_lat,
         lon=request.origin_lon,
     )
-    
-    return result.get("tests", {}).get("route", {})
+
+    route_data = result.get("tests", {}).get("route", {})
+    active_blocked = blocked_streets_store.list_all(active_only=True)
+    active_blocked_streets: List[Dict[str, Any]] = [
+        {"id": b.id, "name": b.name} for b in active_blocked
+    ]
+    return {
+        **route_data,
+        "active_blocked_streets": active_blocked_streets,
+    }

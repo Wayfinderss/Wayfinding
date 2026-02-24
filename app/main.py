@@ -7,6 +7,8 @@ from app.api.geocode_api import router as geocode_router
 import app.services.register_all
 import logging
 logging.basicConfig(level=logging.INFO)
+from app.api.access_routes_api import router as access_routes_router
+from app.api.blocked_streets_api import router as blocked_streets_router
 
 
 def create_app() -> FastAPI:
@@ -23,7 +25,9 @@ def create_app() -> FastAPI:
     # API routers
     app.include_router(router)  # valhalla pipeline endpoints
     app.include_router(geocode_router)  # HERE geocoding endpoints
-    
+    app.include_router(access_routes_router)
+    app.include_router(blocked_streets_router)
+
     # Serve demo page at root
     @app.get("/")
     def index():

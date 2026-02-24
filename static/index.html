@@ -5,12 +5,27 @@
     <style>
         body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
         .search-box { margin: 20px 0; }
-        input { width: 100%; padding: 10px; font-size: 16px; }
+        input[type="text"] { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
         .suggestions { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
         .suggestion { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
         .suggestion:hover { background: #f0f0f0; }
-        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; cursor: pointer; }
         #results { margin-top: 20px; padding: 20px; background: #f9f9f9; }
+        .blocked-section { margin: 24px 0; padding: 16px; border: 1px solid #ccc; background: #fafafa; border-radius: 6px; }
+        .blocked-section h2 { margin-top: 0; font-size: 1.1em; }
+        .blocked-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+        .blocked-form label { display: block; font-weight: bold; margin-bottom: 4px; }
+        .blocked-form .field { flex: 1; min-width: 140px; }
+        .blocked-list { list-style: none; padding: 0; margin: 0; }
+        .blocked-list li { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid #eee; }
+        .blocked-list li:last-child { border-bottom: none; }
+        .blocked-list .name { flex: 1; font-weight: 500; }
+        .blocked-list .note { color: #666; font-size: 0.9em; margin-left: 8px; }
+        .blocked-list .toggle { cursor: pointer; }
+        .blocked-list .inactive { opacity: 0.6; }
+        .blocked-list .delete-btn { padding: 4px 10px; font-size: 12px; background: #c00; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .blocked-list .delete-btn:hover { background: #a00; }
+        .active-blocked-info { margin-top: 12px; padding: 8px 12px; background: #fff3cd; border-radius: 4px; font-size: 0.95em; }
     </style>
 </head>
 <body>
@@ -29,13 +44,116 @@
     </div>
     
     <button onclick="getDirections()">Get Directions</button>
+
+    <div class="blocked-section">
+        <h2>Blocked streets (do not use in routing)</h2>
+        <p>Add street names to avoid. Toggle active to include or exclude them when getting directions.</p>
+        <div class="blocked-form">
+            <div class="field">
+                <label for="blocked-name">Street name</label>
+                <input type="text" id="blocked-name" placeholder="e.g. Forbes Ave">
+            </div>
+            <div class="field">
+                <label for="blocked-note">Note (optional)</label>
+                <input type="text" id="blocked-note" placeholder="e.g. construction">
+            </div>
+            <button type="button" onclick="addBlockedStreet()">Add</button>
+        </div>
+        <ul id="blocked-list" class="blocked-list"></ul>
+    </div>
     
     <div id="results"></div>
     
     <script>
-        const API_BASE = "http://localhost:8000";
+        const API_BASE = "";  // same origin when served by app
         let origin = null, destination = null;
         let debounceTimer = null;
+
+        // ---------- Blocked streets ----------
+        async function fetchBlockedStreets() {
+            const res = await fetch(`${API_BASE}/blocked-streets`);
+            if (!res.ok) throw new Error("Failed to load blocked streets");
+            return await res.json();
+        }
+
+        async function addBlockedStreet() {
+            const nameEl = document.getElementById("blocked-name");
+            const noteEl = document.getElementById("blocked-note");
+            const name = (nameEl.value || "").trim();
+            if (!name) {
+                alert("Enter a street name");
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/blocked-streets`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, note: (noteEl.value || "").trim() || null }),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                nameEl.value = "";
+                noteEl.value = "";
+                renderBlockedList();
+            } catch (e) {
+                console.error(e);
+                alert("Failed to add: " + e.message);
+            }
+        }
+
+        async function toggleBlockedStreet(id, active) {
+            try {
+                const res = await fetch(`${API_BASE}/blocked-streets/${id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ active }),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                renderBlockedList();
+            } catch (e) {
+                console.error(e);
+                alert("Failed to update: " + e.message);
+            }
+        }
+
+        async function deleteBlockedStreet(id) {
+            if (!confirm("Remove this street from the list?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/blocked-streets/${id}`, { method: "DELETE" });
+                if (!res.ok) throw new Error(await res.text());
+                renderBlockedList();
+            } catch (e) {
+                console.error(e);
+                alert("Failed to delete: " + e.message);
+            }
+        }
+
+        function renderBlockedList() {
+            fetchBlockedStreets().then(list => {
+                const ul = document.getElementById("blocked-list");
+                ul.innerHTML = "";
+                list.forEach(item => {
+                    const li = document.createElement("li");
+                    li.className = item.active ? "" : "inactive";
+                    li.innerHTML = `
+                        <input type="checkbox" class="toggle" id="t-${item.id}" ${item.active ? "checked" : ""}
+                            onchange="toggleBlockedStreet('${item.id}', this.checked)">
+                        <span class="name">${escapeHtml(item.name)}</span>
+                        ${item.note ? `<span class="note">${escapeHtml(item.note)}</span>` : ""}
+                        <button type="button" class="delete-btn" onclick="deleteBlockedStreet('${item.id}')">Delete</button>
+                    `;
+                    ul.appendChild(li);
+                });
+            }).catch(e => {
+                document.getElementById("blocked-list").innerHTML = "<li>Could not load list.</li>";
+                console.error(e);
+            });
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement("div");
+            div.textContent = s;
+            return div.innerHTML;
+        }
         
         // Debounced autocomplete
         document.getElementById("origin").addEventListener("input", (e) => {
@@ -135,13 +253,20 @@
                 
                 const data = await res.json();
                 console.log("Directions response:", data);
-                document.getElementById("results").innerHTML = 
-                    `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                let html = "";
+                const blocked = data.active_blocked_streets;
+                if (blocked && blocked.length > 0) {
+                    html += `<div class="active-blocked-info"><strong>Active blocked streets (not used in this route):</strong> ${blocked.map(b => escapeHtml(b.name)).join(", ")}</div>`;
+                }
+                html += `<pre>${JSON.stringify(data, null, 2).replace(/</g, "&lt;")}</pre>`;
+                document.getElementById("results").innerHTML = html;
             } catch (e) {
                 console.error("Request error:", e);
                 document.getElementById("results").innerHTML = `Error: ${e.message}`;
             }
         }
+
+        document.addEventListener("DOMContentLoaded", () => renderBlockedList());
     </script>
 </body>
 </html>
