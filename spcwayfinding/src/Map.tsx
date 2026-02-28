@@ -3,7 +3,19 @@ import { MapContainer, TileLayer } from 'react-leaflet';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
+import Sidebar from './Sidebar';
+import Controlpanel from './Controlpanel';
 import 'leaflet/dist/leaflet.css';
+
+// Placeholder step data (TODO: replace with real routing API results)
+const PLACEHOLDER_STEPS = [
+  { instruction: 'Head north on Forbes Ave toward Craig St', detail: '0.2 mi · 1 min' },
+  { instruction: 'Turn right onto Craig St', detail: '0.1 mi · 1 min' },
+  { instruction: 'Turn left onto Fifth Ave', detail: '1.3 mi · 4 min' },
+  { instruction: 'Keep right to stay on Fifth Ave', detail: '0.6 mi · 2 min' },
+  { instruction: 'Turn right onto Morewood Ave', detail: '0.3 mi · 1 min' },
+  { instruction: 'Arrive at your destination on the right', detail: '—' },
+];
 
 interface Location {
   lat: number;
@@ -16,6 +28,18 @@ export default function Map() {
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
+  const [searched, setSearched] = useState(false);
+
+  const handleSearch = () => {
+    if (!from.trim() || !to.trim()) return;
+    // TODO: geocode from/to strings and call fetchRoute with real coordinates
+    setSteps(PLACEHOLDER_STEPS);
+    setSearched(true);
+  };
 
   // Automatically fetch route when both points are set
   useEffect(() => {
@@ -97,109 +121,50 @@ export default function Map() {
     setEndPoint(null);
     setRoutePolyline(null);
     setErrorMessage(null);
+    setSteps(null);
+    setSearched(false);
+    setFrom('');
+    setTo('');
   };
 
+  const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Control Panel */}
-      <div style={{ 
-        padding: '15px', 
-        backgroundColor: '#f5f5f5',
-        borderBottom: '2px solid #ddd',
-        display: 'flex',
-        gap: '15px',
-        alignItems: 'center',
-        flexWrap: 'wrap'
-      }}>
-        {/* Instructions */}
-        <div style={{ flex: 1, minWidth: '200px' }}>
-          <strong>Instructions:</strong>
-          {!startPoint && ' Click on the map to set start point (green marker)'}
-          {startPoint && !endPoint && ' Click again to set end point (red marker)'}
-          {startPoint && endPoint && ' Route displayed! Click to reset.'}
-        </div>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
 
-        {/* Clear button */}
-        {(startPoint || endPoint) && (
-          <button 
-            onClick={clearRoute}
-            style={{ 
-              padding: '10px 20px', 
-              cursor: 'pointer',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontWeight: 'bold'
-            }}
-          >
-            Clear Route
-          </button>
-        )}
+      {/* Sidebar — sits on the left */}
+      <Sidebar
+        {...sharedProps}
+        from={from}
+        to={to}
+        setFrom={setFrom}
+        setTo={setTo}
+        handleSearch={handleSearch}
+        steps={steps}
+        searched={searched}
+      />
 
-        {/* Loading indicator */}
-        {isLoading && (
-          <div style={{ 
-            padding: '10px', 
-            backgroundColor: '#fff3e0', 
-            color: '#e65100',
-            borderRadius: '4px',
-            fontWeight: 'bold'
-          }}>
-            🔄 Finding route...
-          </div>
-        )}
+      {/* Right side — control panel on top, map below */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Controlpanel {...sharedProps} />
 
-        {/* Error message */}
-        {errorMessage && (
-          <div style={{ 
-            padding: '10px', 
-            backgroundColor: '#ffebee', 
-            color: '#c62828',
-            borderRadius: '4px',
-            border: '1px solid #ef5350',
-            flex: 1,
-            minWidth: '300px'
-          }}>
-            ⚠️ {errorMessage}
-          </div>
-        )}
-
-        {/* Success message */}
-        {routePolyline && !errorMessage && (
-          <div style={{ 
-            padding: '10px', 
-            backgroundColor: '#e8f5e9', 
-            color: '#2e7d32',
-            borderRadius: '4px',
-            fontWeight: 'bold'
-          }}>
-            ✓ Route found!
-          </div>
-        )}
+        <MapContainer
+          center={[40.4421676, -79.9959]}
+          zoom={13}
+          scrollWheelZoom={true}
+          style={{ flex: 1, width: '100%' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapClickHandler onLocationSelect={handleLocationSelect} />
+          <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
+          <RouteLayer encodedPolyline={routePolyline} />
+        </MapContainer>
       </div>
-      
-      {/* Map */}
-      <MapContainer 
-        center={[40.4421676, -79.9959]} 
-        zoom={13} 
-        scrollWheelZoom={true}
-        style={{ flex: 1, width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        
-        {/* Click handler */}
-        <MapClickHandler onLocationSelect={handleLocationSelect} />
-        
-        {/* Start/End markers */}
-        <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
-        
-        {/* Route line */}
-        <RouteLayer encodedPolyline={routePolyline} />
-      </MapContainer>
+
     </div>
+
   );
 }
