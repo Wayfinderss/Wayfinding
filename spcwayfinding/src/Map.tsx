@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
+import { geocodeAddress, getDirections } from './services/api';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
@@ -37,12 +38,28 @@ export default function Map() {
   const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = () => {
-    if (!from.trim() || !to.trim()) return;
-    // TODO: geocode from/to strings and call fetchRoute with real coordinates
-    setSteps(PLACEHOLDER_STEPS);
-    setSearched(true);
-  };
+  const handleSearch = async () => {
+  if (!from.trim() || !to.trim()) return;
+  setIsLoading(true);
+  
+  try {
+    const fromResults = await geocodeAddress(from);
+    const toResults = await geocodeAddress(to);
+    
+    if (fromResults.length && toResults.length) {
+      const start = fromResults[0];
+      const end = toResults[0];
+      
+      setStartPoint({ lat: start.lat, lon: start.lon });
+      setEndPoint({ lat: end.lat, lon: end.lon });
+      await fetchRoute({ lat: start.lat, lon: start.lon }, { lat: end.lat, lon: end.lon });
+    }
+  } catch (error) {
+    setErrorMessage('Failed to geocode addresses');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Automatically fetch route when both points are set
   useEffect(() => {
@@ -71,53 +88,29 @@ export default function Map() {
   };
 
   const fetchRoute = async (start: Location, end: Location) => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
-      const response = await fetch('/api/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locations: [
-            { lat: start.lat, lon: start.lon },
-            { lat: end.lat, lon: end.lon }
-          ],
-          costing: 'pedestrian',
-          directions_options: { units: 'miles' }
-        })
-      });
+  setIsLoading(true);
+  setErrorMessage(null);
 
-      const data = await response.json();
-      
-      if (data.error_code) {
-        if (data.error_code === 442) {
-          setErrorMessage('No route found - these locations are not connected by sidewalks');
-        } else if (data.error_code === 171) {
-          setErrorMessage('No sidewalks found near one or both locations');
-        } else {
-          setErrorMessage(`Routing error: ${data.error}`);
-        }
-        setRoutePolyline(null);
-        return;
-      }
-      
-      const encodedShape = data.trip?.legs?.[0]?.shape;
-      
-      if (!encodedShape) {
-        setErrorMessage('Invalid response from routing engine');
-        return;
-      }
-      
-      setRoutePolyline(encodedShape);
-      
-    } catch (error) {
-      console.error('Error fetching route:', error);
-      setErrorMessage('Failed to connect to routing service');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    const data = await getDirections({
+      origin_lat: start.lat,
+      origin_lon: start.lon,
+      destination_lat: end.lat,
+      destination_lon: end.lon,
+      costing: 'pedestrian', // or whatever costing you prefer
+    });
+
+    // backend returns the encoded polyline in summary.shape
+    setRoutePolyline(data.summary?.shape || null);
+    setSearched(true);
+  } catch (err) {
+    console.error('routing error', err);
+    setErrorMessage('Failed to get directions');
+    setRoutePolyline(null);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const clearRoute = () => {
     setStartPoint(null);

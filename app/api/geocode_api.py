@@ -1,7 +1,7 @@
 import os
 import logging
+import httpx                                        # ← added
 from fastapi import APIRouter, HTTPException
-import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +12,6 @@ HERE_API_KEY = os.getenv("HERE_API_KEY")
 if not HERE_API_KEY:
     raise ValueError("HERE_API_KEY not found in environment variables")
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
@@ -35,27 +34,24 @@ async def geocode_autocomplete(q: str):
             )
             response.raise_for_status()
             data = response.json()
-            
-            results = []
-            for item in data.get("items", []):
-                # Geocoding API returns position with lat/lng
-                position = item.get("position", {})
-                lat = position.get("lat")
-                lon = position.get("lng")  # HERE uses "lng" not "lon"
-                
-                if lat is not None and lon is not None:
-                    address = item.get("address", {})
-                    label = address.get("label", "") or item.get("title", "")
-                    
-                    results.append({
-                        "label": label,
-                        "address": label,
-                        "lat": float(lat),
-                        "lon": float(lon),
-                    })
-            
-            return {"results": results}
-            
+
+        results: list[dict] = []
+        for item in data.get("items", []):
+            pos = item.get("position", {})
+            # HERE returns lat/lng keys
+            lat = pos.get("lat")
+            lon = pos.get("lng") or pos.get("lon")
+            if lat is None or lon is None:
+                continue
+            results.append({
+                "label": item.get("title", ""),
+                "address": item.get("address", {}).get("label", ""),
+                "lat": lat,
+                "lon": lon,
+            })
+
+        return {"results": results}
+
     except httpx.HTTPError as e:
         logger.error(f"HERE API HTTP error: {e}")
         raise HTTPException(status_code=500, detail=f"HERE API error: {str(e)}")
