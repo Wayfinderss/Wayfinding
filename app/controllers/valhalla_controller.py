@@ -1,63 +1,96 @@
-from typing import Dict, Any
+from typing import Any, Dict, Optional
+from pathlib import Path
 
-from app.core.paths import DATA_DIR
-from app.jobs.job import JobStatus
-from app.jobs.job_handler import JobManager
-from app.pipeline.config_pipeline import ValhallaConfigPipeline
-import shutil
+from app.pipelines.route_pipeline import RoutePipeline
+from app.services.routing_service import ValhallaRouteService
+from app.services.invalid_logging_service import InvalidRouteLogger
+from engines.valhalla_engine.actor_loader import ActorLoader
+from engines.valhalla_engine.adapter import ValhallaAdapter
 
 
-class ValhallaPipelineController:
-    def __init__(self, job_manager: JobManager):
-        self.job_manager = job_manager
+VALHALLA_FAILURE_REASONS = {
+    170: "no_road_near_destination",
+    171: "no_road_near_origin",
+    442: "no_path_found",
+    443: "degenerate_route",
+}
 
-    def run_pipeline(
+
+class RouteController:
+
+    def __init__(
         self,
-        *,
-        pbf_file: str,
-        lat: float,
-        lon: float,
-        tests: Dict[str, Dict[str, Any]],
-        metadata: Dict[str, Any] | None = None,
-        delete_job_on_finish: bool = True,
+        config_path: Path,
+        db_backend: str = "postgres",
+        db_connection_string: str = "dbname=walkway_demand",
+    ):
+        # ---- Engine wiring ----
+        actor_loader = ActorLoader(config_path)
+        adapter = ValhallaAdapter(actor_loader)
+        route_service = ValhallaRouteService(adapter)
+
+        self.pipeline = RoutePipeline(route_service)
+
+        # ---- Logger ----
+        self.logger = InvalidRouteLogger(
+            backend=db_backend,
+            connection_string=db_connection_string,
+            geohash_precision=9,
+        )
+
+    # -----------------------------------------------------
+
+    def get_route(
+        self,
+        origin_lat: float,
+        origin_lng: float,
+        dest_lat: float,
+        dest_lng: float,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
 
-        job = self.job_manager.create_job(metadata=metadata or {})
-        job_id = job.get_id()
+        result = self.pipeline.execute(
+            origin_lat=origin_lat,
+            origin_lng=origin_lng,
+            dest_lat=dest_lat,
+            dest_lng=dest_lng,
+        )
 
-        try:
-            self.job_manager.update_job_status(job_id, JobStatus.QUEUED)
-            self.job_manager.update_job_status(job_id, JobStatus.RUNNING)
+        # ---------------- Success ----------------
+        if result.get("success"):
+            return {
+                "status": "ok",
+                "trip": result["trip"],
+            }
 
-            shutil.rmtree(DATA_DIR / "tiles", ignore_errors=True)
+        # ---------------- Failure ----------------
+        error_code = result.get("error_code")
+        error_message = result.get("error_message", "unknown")
 
-            pipeline = ValhallaConfigPipeline(
-                job=job,
-                pbf_file=pbf_file,
-                lat=lat,
-                lon=lon,
-                tests=tests,
+        failure_reason = VALHALLA_FAILURE_REASONS.get(
+            error_code,
+            f"valhalla_{error_code}",
+        )
+
+        # 🔥 LOG ONLY IF WE HAVE A REAL FAILURE CODE
+        if error_code is not None and error_code >= 0:
+            attempt = self.logger.log(
+                origin_lat=origin_lat,
+                origin_lng=origin_lng,
+                dest_lat=dest_lat,
+                dest_lng=dest_lng,
+                user_id=user_id,
+                failure_reason=failure_reason,
             )
 
-            result = pipeline.run_pipeline()
+            logged_attempt_id = attempt.id
+        else:
+            logged_attempt_id = None
 
-            self.job_manager.update_job_status(job_id, JobStatus.COMPLETED)
-
-            return {
-                "job_id": job_id,
-                "status": JobStatus.COMPLETED,
-                "result": result,
-            }
-
-        except Exception as e:
-            self.job_manager.update_job_status(job_id, JobStatus.FAILED)
-
-            return {
-                "job_id": job_id,
-                "status": JobStatus.FAILED,
-                "error": str(e),
-            }
-
-        finally:
-            if delete_job_on_finish:
-                job.cleanup()
+        return {
+            "status": "no_route",
+            "error_code": error_code,
+            "error_message": error_message,
+            "failure_reason": failure_reason,
+            "logged_attempt_id": logged_attempt_id,
+        }

@@ -1,32 +1,66 @@
-# engines/valhalla/tile_builder.py
-
 import subprocess
 import urllib.request
 from pathlib import Path
 
 
 class ValhallaTileBuilder:
+    """
+    Engine-level component responsible for building Valhalla tiles.
+    Does not assume app-layer directory structure.
+    """
 
     DEFAULT_OSM_URL = (
         "https://download.geofabrik.de/north-america/us/virginia-latest.osm.pbf"
     )
 
     def __init__(self, tiles_dir: Path):
-        self.tiles_dir = tiles_dir
+        self.tiles_dir = Path(tiles_dir)
 
-    def build(self, config_path: Path, osm_path: Path | None = None) -> None:
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def build(
+        self,
+        config_path: Path,
+        osm_path: Path,
+        auto_download: bool = False,
+    ) -> None:
+
+        config_path = Path(config_path)
+        osm_path = Path(osm_path)
+
         if not config_path.exists():
             raise RuntimeError("valhalla.json not found — cannot build tiles")
 
         self._ensure_tile_dir()
 
-        if osm_path is None:
-            osm_path = self.tiles_dir.parent / "default.osm.pbf"
+        if not osm_path.exists():
+            if not auto_download:
+                raise FileNotFoundError(
+                    f"OSM PBF not found at {osm_path} "
+                    "(set auto_download=True to fetch default dataset)"
+                )
+            self._download_default_pbf(osm_path)
 
-        self._ensure_pbf(osm_path)
-        self._build_tiles(config_path, osm_path)
+        if self._tiles_exist():
+            print("✓ Tiles already exist — skipping build")
+            return
 
-    # ---------------- internals ----------------
+        self._run([
+            "valhalla_build_tiles",
+            "-c", str(config_path),
+            str(osm_path),
+        ])
+
+        if not self._tiles_exist():
+            raise RuntimeError("Tile build completed but no tiles were produced")
+
+        print("✓ Tiles built successfully")
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
 
     def _run(self, cmd: list[str]):
         print(f"▶ {' '.join(cmd)}")
@@ -36,33 +70,11 @@ class ValhallaTileBuilder:
         self.tiles_dir.mkdir(parents=True, exist_ok=True)
         print(f"✓ Tile dir ready: {self.tiles_dir}")
 
-    def _ensure_pbf(self, osm_path: Path):
-        if osm_path.exists():
-            print(f"✓ OSM PBF already exists: {osm_path}")
-            return
-
+    def _download_default_pbf(self, osm_path: Path):
         osm_path.parent.mkdir(parents=True, exist_ok=True)
-        print("⬇ Downloading OSM PBF")
+        print("⬇ Downloading default OSM PBF")
         urllib.request.urlretrieve(self.DEFAULT_OSM_URL, osm_path)
         print(f"✓ Downloaded {osm_path}")
 
-    def _build_tiles(self, config: Path, osm_path: Path):
-        if self._tiles_exist():
-            print("✓ Tiles already built")
-            return
-
-        self._run([
-            "valhalla_build_tiles",
-            "-c", str(config),
-            str(osm_path),
-        ])
-
-        if not self._tiles_exist():
-            raise RuntimeError("Tile build completed but no tiles were produced")
-
-        print("✓ Tiles built successfully")
-
     def _tiles_exist(self) -> bool:
-        if not self.tiles_dir.exists():
-            return False
-        return any(self.tiles_dir.rglob("*.gph"))
+        return self.tiles_dir.exists() and any(self.tiles_dir.rglob("*.gph"))
