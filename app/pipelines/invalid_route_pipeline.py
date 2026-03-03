@@ -40,6 +40,7 @@ from app.services.geohashing_service import Geohasher
 from integrations.logger.databases_backend import DatabaseBackend
 from integrations.logger.backend_factory import BackendFactory
 from app.services.schema_creator_service import SchemaCreatorService
+from app.states.failed_attempt import FailedRouteAttempt, DemandHotspot
 
 
 # -------------------------------------------------------------------------
@@ -51,39 +52,6 @@ from app.services.schema_creator_service import SchemaCreatorService
 #   Precision 8 ≈  38m ×  19m  (≈ 60–120 feet — good default)
 #   Precision 9 ≈   5m ×   5m  (very tight)
 DEFAULT_GEOHASH_PRECISION = 8
-
-
-# -------------------------------------------------------------------------
-# Data classes
-# -------------------------------------------------------------------------
-
-@dataclass
-class FailedRouteAttempt:
-    id: str
-    origin_lat: float
-    origin_lng: float
-    dest_lat: float
-    dest_lng: float
-    origin_geohash: str
-    dest_geohash: str
-    user_id: Optional[str]
-    failure_reason: Optional[str]
-    timestamp: float
-
-
-@dataclass
-class DemandHotspot:
-    """A cluster of failed attempts sharing the same geohash cell."""
-    geohash: str
-    center_lat: float
-    center_lng: float
-    attempt_count: int
-    unique_users: int
-    first_seen: str
-    last_seen: str
-    point_type: str                                  # "origin" or "destination"
-    sample_reasons: list = field(default_factory=list)
-
 
 # -------------------------------------------------------------------------
 # Pipeline
@@ -112,7 +80,7 @@ class InvalidRoutePipeline:
         """
         self.db: DatabaseBackend = BackendFactory.get_backend(backend, connection_string)
         self.precision = geohash_precision
-        self.geohasher = Geohasher(geohash_precision)
+        self.geohasher = Geohasher()
 
         if auto_create_schema:
             SchemaCreatorService.create_schema(backend, connection_string)

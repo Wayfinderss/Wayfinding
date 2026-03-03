@@ -3,6 +3,7 @@
 from pathlib import Path
 from threading import Lock
 from valhalla import Actor
+from config_builder import ValhallaConfigBuilder
 
 
 class ActorLoader:
@@ -30,5 +31,6 @@ class ActorLoader:
                 f"Valhalla config not found at {self.config_path}"
             )
 
+        ValhallaConfigBuilder(self.config_path).write(self.config_path)
         print(f"Loading Valhalla Actor from {self.config_path}")
         return Actor(str(self.config_path))

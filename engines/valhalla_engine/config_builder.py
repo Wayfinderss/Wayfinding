@@ -153,16 +153,22 @@ class ValhallaConfigBuilder:
         }
 
     def write(self, output_path: Path) -> Path:
-        """
-        Writes the generated config to disk.
-        Returns the output path.
-        """
+        output_path = Path(output_path)
+
+        # Ensure base directories exist
+        self.tiles_dir.mkdir(parents=True, exist_ok=True)
+        self.valhalla_data_dir.mkdir(parents=True, exist_ok=True)
+        self.transit_dir.mkdir(parents=True, exist_ok=True)
+        self.transit_feeds_dir.mkdir(parents=True, exist_ok=True)
+        self.elevation_dir.mkdir(parents=True, exist_ok=True)
+
         config = self.build_dict()
 
-        output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(output_path, "w") as f:
             json.dump(config, f, indent=2)
+
+        print(f"✓ Valhalla config written to {output_path}")
 
         return output_path

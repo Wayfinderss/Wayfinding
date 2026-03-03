@@ -12,7 +12,6 @@ class Geohasher:
     _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
     _DECODE_MAP = {c: i for i, c in enumerate(_BASE32)}
 
-
     def encode(self, lat: float, lng: float, precision: int = 8) -> str:
         """Encode a (lat, lng) pair into a geohash string."""
         lat_range, lng_range = [-90.0, 90.0], [-180.0, 180.0]
