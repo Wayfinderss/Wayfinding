@@ -87,7 +87,7 @@ export default function Map() {
     }
   };
 
-  const fetchRoute = async (start: Location, end: Location) => {
+    const fetchRoute = async (start: Location, end: Location) => {
   setIsLoading(true);
   setErrorMessage(null);
 
@@ -97,12 +97,32 @@ export default function Map() {
       origin_lon: start.lon,
       destination_lat: end.lat,
       destination_lon: end.lon,
-      costing: 'pedestrian', // or whatever costing you prefer
+      costing: 'pedestrian',
     });
+    console.log('Full routing response:', JSON.stringify(data, null, 2));
 
-    // backend returns the encoded polyline in summary.shape
-    setRoutePolyline(data.summary?.shape || null);
+    if (data.error_code) {
+      if (data.error_code === 442) {
+        setErrorMessage('No route found - these locations are not connected by sidewalks');
+      } else if (data.error_code === 171) {
+        setErrorMessage('No sidewalks found near one or both locations');
+      } else {
+        setErrorMessage(`Routing error: ${data.error}`);
+      }
+      setRoutePolyline(null);
+      return;
+    }
+
+    const encodedShape = data.summary?.legs?.[0]?.shape;  // ← correct path
+
+    if (!encodedShape) {
+      setErrorMessage('Invalid response from routing engine');
+      return;
+    }
+
+    setRoutePolyline(encodedShape);
     setSearched(true);
+
   } catch (err) {
     console.error('routing error', err);
     setErrorMessage('Failed to get directions');
