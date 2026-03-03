@@ -29,6 +29,8 @@ async def geocode_autocomplete(q: str):
                     "q": q,
                     "apikey": HERE_API_KEY,
                     "limit": 5,
+                    "in": "countryCode:USA",  # ISO 3166-1 alpha-3
+                    "at": "40.4406,-79.9959",   # ← Pittsburgh, PA bias
                 },
                 timeout=5.0
             )

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.api.pipeline_api import router
-from app.api.geocode_api import router as geocode_router
+from app.api.geocode_api_geoapify import router as geocode_router
 import app.services.register_all
 import logging
 logging.basicConfig(level=logging.INFO)
