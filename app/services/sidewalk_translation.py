@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# translation script for ogr2osm used to create Sidwalks.osm.pbf
 
 import ogr2osm
 
