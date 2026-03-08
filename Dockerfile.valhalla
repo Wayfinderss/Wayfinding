@@ -15,7 +15,6 @@ RUN apt-get update \
 COPY . /app
 
 RUN python3 -m venv /opt/venv \
-
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 ENV PATH="/opt/venv/bin:${PATH}"
@@ -23,3 +22,7 @@ ENV PYTHONPATH=/app
 
 COPY scripts/bootstrap_tiles.sh /bootstrap_tiles.sh
 RUN chmod +x /bootstrap_tiles.sh
+
+EXPOSE 8002
+
+CMD ["/bootstrap_tiles.sh"]
