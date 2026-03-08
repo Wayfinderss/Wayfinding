@@ -1,9 +1,20 @@
 from pathlib import Path
 import json
+import math
 import xml.etree.ElementTree as ET
 
 
 class GeoJSONToOSMService:
+
+    SURFACE_MAP = {
+        "concrete": "concrete",
+        "asphalt": "asphalt",
+        "brick": "paving_stones",
+        "pavers": "paving_stones",
+        "gravel": "gravel",
+    }
+
+    MIN_SEGMENT_LENGTH_M = 0.5
 
     @staticmethod
     def _safe_float(v):
@@ -12,8 +23,74 @@ class GeoJSONToOSMService:
         except:
             return None
 
+    @staticmethod
+    def _segment_length(coords):
+
+        def haversine(lat1, lon1, lat2, lon2):
+            R = 6371000
+            phi1 = math.radians(lat1)
+            phi2 = math.radians(lat2)
+            dphi = math.radians(lat2 - lat1)
+            dlambda = math.radians(lon2 - lon1)
+
+            a = (
+                math.sin(dphi / 2) ** 2
+                + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+            )
+            return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+        total = 0
+        for i in range(len(coords) - 1):
+            lon1, lat1 = coords[i]
+            lon2, lat2 = coords[i + 1]
+            total += haversine(lat1, lon1, lat2, lon2)
+
+        return total
+
     @classmethod
-    def convert(cls, *, geojson_path: Path, osm_path: Path):
+    def _normalize_properties(cls, props, length):
+        """
+        Experimental normalization layer.
+        Only runs when normalization=True in convert().
+        """
+
+        tags = {}
+
+        # Surface normalization
+        material = props.get("Material")
+        if material:
+            material = material.lower().strip()
+            surface = cls.SURFACE_MAP.get(material)
+            if surface:
+                tags["surface"] = surface
+
+        # Width normalization
+        width = cls._safe_float(props.get("Width"))
+        if width and width > 0:
+            tags["width"] = f"{width:.2f}"
+
+        # Incline normalization
+        grade = cls._safe_float(props.get("Grade"))
+
+        if grade is None:
+            zmin = cls._safe_float(props.get("Z_Min"))
+            zmax = cls._safe_float(props.get("Z_Max"))
+
+            if zmin is not None and zmax is not None:
+                grade = ((zmax - zmin) / length) * 100
+
+        if grade is not None:
+            tags["incline"] = f"{grade:.1f}%"
+
+        # Name normalization
+        road = props.get("RoadName")
+        if road and road.strip():
+            tags["name"] = road.strip()
+
+        return tags
+
+    @classmethod
+    def convert(cls, *, geojson_path: Path, osm_path: Path, normalize: bool = False):
 
         with open(geojson_path) as f:
             data = json.load(f)
@@ -27,7 +104,7 @@ class GeoJSONToOSMService:
         way_id = 1
 
         # -----------------------------
-        # PASS 1: collect nodes + ways
+        # PASS 1 — Structural filtering
         # -----------------------------
 
         for feature in features:
@@ -39,12 +116,30 @@ class GeoJSONToOSMService:
                 continue
 
             coords = geom.get("coordinates", [])
+
+            if len(coords) < 2:
+                continue
+
+            # Status filter
+            if props.get("Status") and props.get("Status") != "Open":
+                continue
+
+            # Width filter
+            width = cls._safe_float(props.get("Width"))
+            if width is not None and width <= 0:
+                continue
+
+            # Geometry length filter
+            length = cls._segment_length(coords)
+            if length < cls.MIN_SEGMENT_LENGTH_M:
+                continue
+
             way_nodes = []
 
-            for coord in coords:
+            for lon, lat in coords:
 
-                lon = cls._safe_float(coord[0])
-                lat = cls._safe_float(coord[1])
+                lon = cls._safe_float(lon)
+                lat = cls._safe_float(lat)
 
                 if lon is None or lat is None:
                     continue
@@ -60,7 +155,7 @@ class GeoJSONToOSMService:
             if len(way_nodes) < 2:
                 continue
 
-            ways.append((way_id, way_nodes, props))
+            ways.append((way_id, way_nodes, props, length))
             way_id += 1
 
         # -----------------------------
@@ -69,7 +164,7 @@ class GeoJSONToOSMService:
 
         osm = ET.Element("osm", version="0.6", generator="wayfinder")
 
-        # WRITE ALL NODES FIRST
+        # Write nodes
         for (lon, lat), nid in node_cache.items():
 
             ET.SubElement(
@@ -81,8 +176,8 @@ class GeoJSONToOSMService:
                 visible="true",
             )
 
-        # WRITE ALL WAYS SECOND
-        for wid, node_ids, props in ways:
+        # Write ways
+        for wid, node_ids, props, length in ways:
 
             way = ET.SubElement(osm, "way", id=str(wid), visible="true")
 
@@ -91,22 +186,12 @@ class GeoJSONToOSMService:
 
             tags = {
                 "highway": "footway",
-                "foot": "yes",
                 "footway": "sidewalk",
-                "source": "WestmorelandCountyGIS",
+                "foot": "yes",
             }
 
-            if props.get("RoadName"):
-                tags["name"] = props["RoadName"]
-
-            if props.get("Material"):
-                tags["surface"] = str(props["Material"]).lower()
-
-            if props.get("Width"):
-                tags["width"] = str(props["Width"])
-
-            if props.get("Grade"):
-                tags["incline"] = f"{props['Grade']}%"
+            if normalize:
+                tags.update(cls._normalize_properties(props, length))
 
             for k, v in tags.items():
                 ET.SubElement(way, "tag", k=k, v=str(v))
