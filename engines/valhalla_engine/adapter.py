@@ -1,14 +1,31 @@
-from typing import Dict, Any
-from engines.valhalla_engine.actor_loader import ActorLoader
+import requests
 
 
 class ValhallaAdapter:
-    def __init__(self, actor_loader: ActorLoader):
-        self._actor_loader = actor_loader
-        self._actor = self._actor_loader.get_actor()
 
-    def route(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            return self._actor.route(payload)
-        except Exception as e:
-            raise RuntimeError(str(e)) from e
+    def __init__(self, base_url: str = "http://valhalla:8002"):
+        self.base_url = base_url.rstrip("/")
+
+    def route(self, payload: dict) -> dict:
+        response = requests.post(
+            f"{self.base_url}/route",
+            json=payload,
+            timeout=30,
+        )
+
+        if not response.ok:
+            raise RuntimeError(response.text)
+
+        return response.json()
+
+    def isochrone(self, payload: dict) -> dict:
+        response = requests.post(
+            f"{self.base_url}/isochrone",
+            json=payload,
+            timeout=30,
+        )
+
+        if not response.ok:
+            raise RuntimeError(response.text)
+
+        return response.json()

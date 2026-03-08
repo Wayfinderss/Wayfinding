@@ -1,0 +1,125 @@
+{
+  "mjolnir": {
+    "tile_dir": "/app/data/valhalla/tiles",
+    "tile_extract": "/app/data/valhalla/tiles/tiles.tar",
+    "traffic_extract": "/app/data/valhalla/tiles/traffic.tar",
+    "admin": "/app/data/valhalla/valhalla_data/admin.sqlite",
+    "landmarks": "/app/data/valhalla/valhalla_data/landmarks.sqlite",
+    "timezone": "/app/data/valhalla/valhalla_data/tz_world.sqlite",
+    "transit_dir": "/app/data/valhalla/transit",
+    "transit_feeds_dir": "/app/data/valhalla/transit_feeds",
+    "hierarchy": true,
+    "shortcuts": true,
+    "include_bicycle": true,
+    "include_pedestrian": true,
+    "include_driving": true,
+    "data_processing": {
+      "infer_internal_intersections": true,
+      "infer_turn_channels": true,
+      "apply_country_overrides": true,
+      "grid_divisions_within_tile": 32
+    },
+    "logging": {
+      "type": "std_out",
+      "color": true
+    }
+  },
+  "additional_data": {
+    "elevation": "/app/data/valhalla/elevation"
+  },
+  "loki": {
+    "actions": [
+      "locate",
+      "route",
+      "isochrone",
+      "trace_route",
+      "trace_attributes",
+      "status",
+      "tile"
+    ],
+    "use_connectivity": true,
+    "service": {
+      "proxy": "ipc:///tmp/loki"
+    },
+    "logging": {
+      "type": "std_out",
+      "color": true
+    }
+  },
+  "thor": {
+    "source_to_target_algorithm": "select_optimal",
+    "service": {
+      "proxy": "ipc:///tmp/thor"
+    },
+    "logging": {
+      "type": "std_out",
+      "color": true
+    }
+  },
+  "odin": {
+    "service": {
+      "proxy": "ipc:///tmp/odin"
+    },
+    "logging": {
+      "type": "std_out",
+      "color": true
+    }
+  },
+  "meili": {
+    "mode": "auto",
+    "default": {
+      "sigma_z": 4.07,
+      "gps_accuracy": 5.0,
+      "beta": 3,
+      "search_radius": 50,
+      "route": true
+    },
+    "service": {
+      "proxy": "ipc:///tmp/meili"
+    },
+    "logging": {
+      "type": "std_out",
+      "color": true
+    }
+  },
+  "httpd": {
+    "service": {
+      "listen": "tcp://*:8002",
+      "loopback": "ipc:///tmp/loopback",
+      "interrupt": "ipc:///tmp/interrupt",
+      "drain_seconds": 28,
+      "shutdown_seconds": 1,
+      "timeout_seconds": -1
+    }
+  },
+  "service_limits": {
+    "pedestrian": {
+      "max_distance": 250000.0,
+      "max_locations": 50,
+      "max_matrix_distance": 200000.0,
+      "max_matrix_location_pairs": 2500
+    },
+    "auto": {
+      "max_distance": 5000000.0,
+      "max_locations": 20,
+      "max_matrix_distance": 400000.0,
+      "max_matrix_location_pairs": 2500
+    },
+    "bicycle": {
+      "max_distance": 500000.0,
+      "max_locations": 50,
+      "max_matrix_distance": 200000.0,
+      "max_matrix_location_pairs": 2500
+    },
+    "isochrone": {
+      "max_contours": 4,
+      "max_time_contour": 120,
+      "max_distance": 25000.0,
+      "max_locations": 1
+    },
+    "trace": {
+      "max_distance": 200000.0,
+      "max_shape": 16000
+    }
+  }
+}

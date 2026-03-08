@@ -14,7 +14,6 @@ Usage:
 
 from __future__ import annotations
 
-import sqlite3
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Iterator, Optional, Sequence
@@ -29,6 +28,10 @@ class DatabaseBackend(ABC):
     Minimal interface that the pipeline needs from a database.
     Every method uses standard DB-API-style parameterized queries.
     """
+
+    @abstractmethod
+    def create_database(self) -> None:
+        """Create the target database if it does not exist."""
 
     @abstractmethod
     @contextmanager

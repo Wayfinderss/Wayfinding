@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  valhalla:
+    build:
+      context: .
+      dockerfile: Dockerfile.valhalla
+    working_dir: /app
+    entrypoint: ["/bin/bash", "/bootstrap_tiles.sh"]
+    environment:
+      PYTHONPATH: /app
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    ports:
+      - "8002:8002"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      VALHALLA_URL: http://valhalla:8002
+      DB_BACKEND: postgres
+      DB_CONNECTION_STRING: host=postgres port=5432 dbname=wayfinding_logger user=postgres password=secret
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    depends_on:
+      - postgres
+      - valhalla
+    ports:
+      - "8000:8000"
+    command: ["/app/.venv/bin/uvicorn", "wayfinder.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  postgres_data:

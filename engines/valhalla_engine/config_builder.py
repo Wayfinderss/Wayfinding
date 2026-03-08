@@ -6,7 +6,7 @@ class ValhallaConfigBuilder:
     Responsible for generating and writing a complete Valhalla config.
 
     This is an engine-level lifecycle component.
-    It does not depend on app-layer abstractions.
+    It does not depend on wayfinder-layer abstractions.
     """
 
     def __init__(
