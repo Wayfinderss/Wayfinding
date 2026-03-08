@@ -1,95 +1,37 @@
-from __future__ import annotations
-
+from pathlib import Path
 import json
 import xml.etree.ElementTree as ET
-from pathlib import Path
-from typing import Dict, Any
 
 
 class GeoJSONToOSMService:
-    """
-    Stateless transformation service.
-    Converts sidewalk GeoJSON into OSM XML.
-    """
 
     @staticmethod
-    def filter_features_by_grade(
-        features: list[Dict[str, Any]],
-        *,
-        max_grade: float | None = None,
-        min_grade: float | None = None,
-    ) -> list[Dict[str, Any]]:
-        """
-        Filter GeoJSON features based on incline (Grade property).
+    def _safe_float(v):
+        try:
+            return float(v)
+        except:
+            return None
 
-        Args:
-            features: List of GeoJSON feature dicts
-            max_grade: Maximum allowed grade percentage
-            min_grade: Minimum allowed grade percentage
+    @classmethod
+    def convert(cls, *, geojson_path: Path, osm_path: Path):
 
-        Returns:
-            Filtered list of features
-        """
-        filtered = []
-
-        for feature in features:
-            props = feature.get("properties", {})
-            grade = props.get("Grade")
-
-            if grade is None:
-                continue
-
-            try:
-                grade = float(grade)
-            except (ValueError, TypeError):
-                continue
-
-            if max_grade is not None and grade > max_grade:
-                continue
-
-            if min_grade is not None and grade < min_grade:
-                continue
-
-            filtered.append(feature)
-
-        return filtered
-
-    @staticmethod
-    def convert(
-        geojson_path: Path,
-        osm_path: Path,
-        *,
-        max_grade: float | None = None,
-        min_grade: float | None = None,
-    ) -> None:
-        """
-        Convert GeoJSON sidewalk data to OSM XML format.
-
-        Args:
-            geojson_path: Path to input GeoJSON file
-            osm_path: Path to output OSM XML file
-            max_grade: Optional maximum allowed incline %
-            min_grade: Optional minimum allowed incline %
-        """
-        with open(geojson_path, "r", encoding="utf-8") as f:
-            data: Dict[str, Any] = json.load(f)
+        with open(geojson_path) as f:
+            data = json.load(f)
 
         features = data.get("features", [])
 
-        if max_grade is not None or min_grade is not None:
-            features = GeoJSONToOSMService.filter_features_by_grade(
-                features,
-                max_grade=max_grade,
-                min_grade=min_grade,
-            )
+        node_cache = {}
+        ways = []
 
-        node_id = -1
-        way_id = -1
-        node_cache: dict[str, int] = {}
-        nodes: list[dict[str, str]] = []
-        ways: list[dict[str, Any]] = []
+        node_id = 1
+        way_id = 1
+
+        # -----------------------------
+        # PASS 1: collect nodes + ways
+        # -----------------------------
 
         for feature in features:
+
             geom = feature.get("geometry", {})
             props = feature.get("properties", {})
 
@@ -97,103 +39,79 @@ class GeoJSONToOSMService:
                 continue
 
             coords = geom.get("coordinates", [])
-            if len(coords) < 2:
-                continue
-
-            way_nodes: list[int] = []
+            way_nodes = []
 
             for coord in coords:
-                if not isinstance(coord, (list, tuple)) or len(coord) < 2:
+
+                lon = cls._safe_float(coord[0])
+                lat = cls._safe_float(coord[1])
+
+                if lon is None or lat is None:
                     continue
 
-                try:
-                    lon = float(coord[0])
-                    lat = float(coord[1])
-                except (TypeError, ValueError):
-                    continue
+                key = (round(lon, 6), round(lat, 6))
 
-                coord_key = f"{lon:.7f},{lat:.7f}"
+                if key not in node_cache:
+                    node_cache[key] = node_id
+                    node_id += 1
 
-                if coord_key not in node_cache:
-                    node_cache[coord_key] = node_id
-                    nodes.append(
-                        {
-                            "id": str(node_id),
-                            "lat": f"{lat:.7f}",
-                            "lon": f"{lon:.7f}",
-                        }
-                    )
-                    node_id -= 1
-
-                way_nodes.append(node_cache[coord_key])
+                way_nodes.append(node_cache[key])
 
             if len(way_nodes) < 2:
                 continue
 
-            tags: list[tuple[str, str]] = [
-                ("highway", "footway"),
-                ("foot", "yes"),
-            ]
+            ways.append((way_id, way_nodes, props))
+            way_id += 1
 
-            if props.get("Type_Name") == "Sidewalk":
-                tags.append(("footway", "sidewalk"))
-
-            road_name = str(props.get("RoadName", "")).strip()
-            if road_name:
-                tags.append(("name", road_name))
-
-            try:
-                width = float(props.get("Width", 0))
-                if width > 0:
-                    tags.append(("width", str(width)))
-            except (TypeError, ValueError):
-                pass
-
-            material = str(props.get("Material", "")).strip().lower()
-            tags.append(("surface", material or "paved"))
-
-            try:
-                grade = props.get("Grade")
-                if grade is not None:
-                    tags.append(("incline", f"{float(grade):.1f}%"))
-            except (TypeError, ValueError):
-                pass
-
-            tags.append(("source", "Westmoreland County GIS"))
-
-            ways.append(
-                {
-                    "id": str(way_id),
-                    "nodes": way_nodes,
-                    "tags": tags,
-                }
-            )
-            way_id -= 1
+        # -----------------------------
+        # BUILD OSM XML
+        # -----------------------------
 
         osm = ET.Element("osm", version="0.6", generator="wayfinder")
 
-        for node in nodes:
+        # WRITE ALL NODES FIRST
+        for (lon, lat), nid in node_cache.items():
+
             ET.SubElement(
                 osm,
                 "node",
-                id=node["id"],
-                lat=node["lat"],
-                lon=node["lon"],
+                id=str(nid),
+                lon=str(lon),
+                lat=str(lat),
                 visible="true",
             )
 
-        for way_data in ways:
-            way = ET.SubElement(osm, "way", id=way_data["id"], visible="true")
+        # WRITE ALL WAYS SECOND
+        for wid, node_ids, props in ways:
 
-            for node_ref in way_data["nodes"]:
-                ET.SubElement(way, "nd", ref=str(node_ref))
+            way = ET.SubElement(osm, "way", id=str(wid), visible="true")
 
-            for key, value in way_data["tags"]:
-                ET.SubElement(way, "tag", k=key, v=value)
+            for nid in node_ids:
+                ET.SubElement(way, "nd", ref=str(nid))
+
+            tags = {
+                "highway": "footway",
+                "foot": "yes",
+                "footway": "sidewalk",
+                "source": "WestmorelandCountyGIS",
+            }
+
+            if props.get("RoadName"):
+                tags["name"] = props["RoadName"]
+
+            if props.get("Material"):
+                tags["surface"] = str(props["Material"]).lower()
+
+            if props.get("Width"):
+                tags["width"] = str(props["Width"])
+
+            if props.get("Grade"):
+                tags["incline"] = f"{props['Grade']}%"
+
+            for k, v in tags.items():
+                ET.SubElement(way, "tag", k=k, v=str(v))
 
         osm_path.parent.mkdir(parents=True, exist_ok=True)
-        ET.ElementTree(osm).write(
-            osm_path,
-            encoding="utf-8",
-            xml_declaration=True,
-        )
+
+        tree = ET.ElementTree(osm)
+        tree.write(osm_path, encoding="utf-8", xml_declaration=True)

@@ -21,6 +21,7 @@ CUSTOM_GEOJSON_PATH = VALHALLA_DATA_DIR / "custom_sidewalks.geojson"
 GENERATED_OSM_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm"
 
 GENERATED_PBF_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm.pbf"
+GENERATED_OPL_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm.opl"
 
 # -------------------------------------------------------------------
 # Valhalla configuration

@@ -1,181 +1,229 @@
+from wayfinder.application.tile_build_pipeline import TileBuildPipeline
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from wayfinder.config.paths import (
+    CUSTOM_GEOJSON_PATH,
+    TILES_DIR,
+    VALHALLA_CONFIG_PATH,
+    VALHALLA_DATA_DIR,
+)
+
+import shutil
 import json
-import subprocess
-from pathlib import Path
+import time
 import requests
 
-# -------------------------------------------------------------------
-# Configuration
-# -------------------------------------------------------------------
+from engines.valhalla_engine.config_builder import ValhallaConfigBuilder
 
-ARCGIS_BASE_URL = "https://YOUR_ARCGIS_URL/FeatureServer/0/query"
 
-DATA_DIR = Path("/data")
+MAX_RETRIES = 5
 
-GEOJSON_PATH = DATA_DIR / "sidewalks.geojson"
-OSM_PATH = DATA_DIR / "sidewalks.osm"
-PBF_PATH = DATA_DIR / "Sidewalks.osm.pbf"
+ARCGIS_BASE_URL = (
+    "https://services3.arcgis.com/MV5wh5WkCMqlwISp/arcgis/rest/services/"
+    "Sidewalks/FeatureServer/0/query"
+)
 
-VALHALLA_CONFIG = DATA_DIR / "valhalla.json"
+REQUEST_TIMEOUT_SECONDS = 60
+OBJECT_ID_CHUNK_SIZE = 200
 
-PAGE_SIZE = 1000
-REQUEST_TIMEOUT = 30
 
-HEADERS = {
-    "User-Agent": "wayfinder-valhalla-bootstrap/1.0"
-}
+def generate_config_file():
 
-# -------------------------------------------------------------------
-# Download ArcGIS GeoJSON using pagination
-# -------------------------------------------------------------------
+    builder = ValhallaConfigBuilder(
+        tiles_dir=TILES_DIR,
+    )
 
-def download_geojson() -> dict:
+    config_path = builder.write(VALHALLA_CONFIG_PATH)
 
-    print("Downloading ArcGIS GeoJSON")
+    print(f"Valhalla config generated: {config_path}")
 
-    features = []
-    offset = 0
+    return config_path
 
-    while True:
 
-        response = requests.get(
+def _load_existing_geojson():
+
+    if not CUSTOM_GEOJSON_PATH.exists():
+        return None
+
+    try:
+        data = json.loads(CUSTOM_GEOJSON_PATH.read_text())
+    except Exception:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    if "features" not in data:
+        return None
+
+    return data
+
+
+def _fetch_object_ids():
+
+    r = requests.get(
+        ARCGIS_BASE_URL,
+        params={
+            "where": "1=1",
+            "returnIdsOnly": "true",
+            "f": "json",
+        },
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+
+    r.raise_for_status()
+
+    payload = r.json()
+
+    object_ids = payload.get("objectIds", [])
+
+    if not object_ids:
+        raise RuntimeError("No object IDs returned")
+
+    return sorted(object_ids)
+
+
+def _fetch_geojson_chunk(ids):
+
+    where = f"OBJECTID IN ({','.join(str(i) for i in ids)})"
+
+    params = {
+        "where": where,
+        "outFields": "*",
+        "outSR": "4326",
+        "f": "geojson",
+    }
+
+    for attempt in range(MAX_RETRIES):
+
+        r = requests.get(
             ARCGIS_BASE_URL,
-            headers=HEADERS,
-            params={
-                "where": "1=1",
-                "outFields": "*",
-                "outSR": "4326",
-                "f": "geojson",
-                "resultOffset": offset,
-                "resultRecordCount": PAGE_SIZE,
-            },
-            timeout=REQUEST_TIMEOUT,
+            params=params,
+            timeout=REQUEST_TIMEOUT_SECONDS,
         )
 
-        response.raise_for_status()
+        try:
+            r.raise_for_status()
+        except Exception:
+            if attempt == MAX_RETRIES - 1:
+                raise
+            time.sleep(2 ** attempt)
+            continue
 
-        payload = response.json()
+        if "application/json" not in r.headers.get("content-type", ""):
+            time.sleep(2 ** attempt)
+            continue
 
-        if "features" not in payload:
-            raise RuntimeError("ArcGIS response missing 'features'")
+        try:
+            payload = r.json()
+        except Exception:
+            time.sleep(2 ** attempt)
+            continue
 
-        batch = payload["features"]
+        return payload
 
-        features.extend(batch)
+    raise RuntimeError("Chunk fetch failed")
 
-        print(f"Downloaded {len(features)} features")
 
-        if len(batch) < PAGE_SIZE:
-            break
+def _download_all_geojson():
 
-        offset += PAGE_SIZE
+    object_ids = _fetch_object_ids()
+
+    print(f"Found {len(object_ids)} ArcGIS features")
+
+    chunks = [
+        object_ids[i:i + OBJECT_ID_CHUNK_SIZE]
+        for i in range(0, len(object_ids), OBJECT_ID_CHUNK_SIZE)
+    ]
+
+    all_features = []
+
+    with ThreadPoolExecutor(max_workers=16) as executor:
+
+        futures = [
+            executor.submit(_fetch_geojson_chunk, chunk)
+            for chunk in chunks
+        ]
+
+        for future in as_completed(futures):
+
+            payload = future.result()
+
+            all_features.extend(payload.get("features", []))
 
     return {
         "type": "FeatureCollection",
-        "features": features,
+        "features": all_features,
     }
 
 
-# -------------------------------------------------------------------
-# Save GeoJSON
-# -------------------------------------------------------------------
+def generate_json(force=False):
 
-def save_geojson(data: dict):
+    if not force:
 
-    print(f"Saving GeoJSON → {GEOJSON_PATH}")
+        existing = _load_existing_geojson()
 
-    with open(GEOJSON_PATH, "w") as f:
-        json.dump(data, f)
+        if existing:
+            print("GeoJSON already exists")
+            return existing
 
+    print("Downloading ArcGIS sidewalks")
 
-# -------------------------------------------------------------------
-# Convert GeoJSON → OSM XML
-# -------------------------------------------------------------------
+    data = _download_all_geojson()
 
-def convert_geojson_to_osm():
+    CUSTOM_GEOJSON_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    print("Converting GeoJSON → OSM XML")
-
-    subprocess.run(
-        [
-            "ogr2ogr",
-            "-f",
-            "OSM",
-            str(OSM_PATH),
-            str(GEOJSON_PATH),
-        ],
-        check=True,
+    CUSTOM_GEOJSON_PATH.write_text(
+        json.dumps(data, indent=2),
+        encoding="utf-8",
     )
 
+    print(f"Saved {len(data['features'])} features")
 
-# -------------------------------------------------------------------
-# Convert OSM → PBF
-# -------------------------------------------------------------------
-
-def convert_osm_to_pbf():
-
-    print("Converting OSM → PBF")
-
-    subprocess.run(
-        [
-            "osmium",
-            "cat",
-            str(OSM_PATH),
-            "-o",
-            str(PBF_PATH),
-        ],
-        check=True,
-    )
+    return data
 
 
-# -------------------------------------------------------------------
-# Build Valhalla tiles
-# -------------------------------------------------------------------
+def tiles_exist():
 
-def build_valhalla_tiles():
+    return TILES_DIR.exists() and any(TILES_DIR.rglob("*.gph"))
 
-    print("Building Valhalla tiles")
-
-    subprocess.run(
-        [
-            "valhalla_build_tiles",
-            "-c",
-            str(VALHALLA_CONFIG),
-            str(PBF_PATH),
-        ],
-        check=True,
-    )
-
-
-# -------------------------------------------------------------------
-# Main pipeline
-# -------------------------------------------------------------------
 
 def main():
 
     print("==== Valhalla Tile Bootstrap ====")
 
-    DATA_DIR.mkdir(exist_ok=True)
+    VALHALLA_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Skip build if tiles exist
-    tiles_dir = DATA_DIR / "tiles"
-    if tiles_dir.exists() and any(tiles_dir.rglob("*.gph")):
-        print("Tiles already exist — skipping bootstrap")
+    for item in VALHALLA_DATA_DIR.iterdir():
+
+        if item.is_file() or item.is_symlink():
+            item.unlink()
+
+        elif item.is_dir():
+            shutil.rmtree(item)
+
+    if not VALHALLA_CONFIG_PATH.exists():
+
+        print("Generating Valhalla config")
+
+        generate_config_file()
+
+    generate_json()
+
+    if tiles_exist():
+
+        print("Tiles already exist")
+
         return
 
-    geojson = download_geojson()
+    result = TileBuildPipeline().run(
+        geojson_path=CUSTOM_GEOJSON_PATH,
+        force=False,
+    )
 
-    save_geojson(geojson)
+    print("Tiles built")
 
-    convert_geojson_to_osm()
+    print(result)
 
-    convert_osm_to_pbf()
-
-    build_valhalla_tiles()
-
-    print("Valhalla bootstrap complete")
-
-
-# -------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()

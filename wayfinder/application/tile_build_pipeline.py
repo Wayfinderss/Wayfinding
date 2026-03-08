@@ -15,59 +15,45 @@ from wayfinder.config.paths import (
 
 class TileBuildPipeline:
     """
-    Application workflow responsible for rebuilding Valhalla tiles.
+    Workflow responsible for rebuilding Valhalla tiles.
 
     Steps:
-        1. Convert GeoJSON → OSM
-        2. Renumber OSM
-        3. Sort OSM
-        4. Convert OSM → PBF
-        5. Build Valhalla tiles
+        1. GeoJSON → OSM XML
+        2. OSM XML → PBF (osmium)
+        3. Build Valhalla tiles
     """
 
     def __init__(self):
         self._tile_builder = ValhallaTileBuilder(TILES_DIR)
 
-    # -------------------------------------------------------------
-
     def run(
-            self,
-            *,
-            geojson_path: Optional[Path] = None,
-            force: bool = True,
+        self,
+        *,
+        geojson_path: Optional[Path] = None,
+        force: bool = True,
     ) -> Dict[str, Any]:
+
         geojson_path = geojson_path or CUSTOM_GEOJSON_PATH
 
         if not geojson_path.exists():
             raise FileNotFoundError(f"GeoJSON not found: {geojson_path}")
 
-        # 1️⃣ GeoJSON → OSM
+        GENERATED_OSM_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        print("Step 1: GeoJSON → OSM")
+
         GeoJSONToOSMService.convert(
             geojson_path=geojson_path,
             osm_path=GENERATED_OSM_PATH,
         )
 
-        renumbered_osm = GENERATED_OSM_PATH.with_name("generated_renumbered.osm")
+        print("Step 2: OSM → PBF")
 
-        # 2️⃣ Renumber
-        subprocess.run(
-            [
-                "osmium",
-                "renumber",
-                str(GENERATED_OSM_PATH),
-                "-o",
-                str(renumbered_osm),
-                "--overwrite",
-            ],
-            check=True,
-        )
-
-        # 3️⃣ Sort directly to PBF
         subprocess.run(
             [
                 "osmium",
                 "sort",
-                str(renumbered_osm),
+                str(GENERATED_OSM_PATH),
                 "-o",
                 str(GENERATED_PBF_PATH),
                 "--overwrite",
@@ -75,11 +61,11 @@ class TileBuildPipeline:
             check=True,
         )
 
-        # 4️⃣ Build tiles
+        print("Step 3: Build Valhalla tiles")
+
         self._tile_builder.build(
             config_path=VALHALLA_CONFIG_PATH,
             osm_path=GENERATED_PBF_PATH,
-            force=force,
         )
 
         return {
