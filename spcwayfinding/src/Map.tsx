@@ -8,6 +8,7 @@ import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
 import Sidebar from './Sidebar';
 import Controlpanel from './Controlpanel';
+import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
 
 // Placeholder step data (TODO: replace with real routing API results)
@@ -31,6 +32,7 @@ export default function Map() {
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fullRouteData, setFullRouteData] = useState<any | null>(null); // NEW: Store full Valhalla response
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -84,11 +86,21 @@ export default function Map() {
             { lat: end.lat, lon: end.lon }
           ],
           costing: 'pedestrian',
-          directions_options: { units: 'miles' }
+          directions_options: { units: 'miles' },
+          shape_format: 'geojson',  // Request GeoJSON format with elevation
+          elevation_interval: 10     // Elevation point every 10 meters
         })
       });
 
       const data = await response.json();
+
+      // DEBUG: Log the full response to see what we got
+      console.log('Full Valhalla response:', data);
+      console.log('Shape type:', typeof data.trip?.legs?.[0]?.shape);
+      console.log('Shape value:', data.trip?.legs?.[0]?.shape);
+
+      // NEW: Store full response for elevation profile
+      setFullRouteData(data);
       
       if (data.error_code) {
         if (data.error_code === 442) {
@@ -128,6 +140,7 @@ export default function Map() {
     setSearched(false);
     setFrom('');
     setTo('');
+    setFullRouteData(null); // NEW: Clear elevation data
   };
 
   const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
@@ -147,7 +160,7 @@ export default function Map() {
         searched={searched}
       />
 
-      {/* Right side — control panel on top, map below */}
+      {/* Right side — control panel on top, map in middle, elevation profile at bottom */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Controlpanel {...sharedProps} />
 
@@ -165,6 +178,9 @@ export default function Map() {
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
+
+        {/* NEW: Elevation Profile */}
+        <ElevationProfile routeData={fullRouteData} />
       </div>
 
     </div>
