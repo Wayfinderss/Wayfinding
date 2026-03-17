@@ -1,7 +1,6 @@
 from pathlib import Path
-import json
 import math
-import xml.etree.ElementTree as ET
+import ijson
 
 
 class GeoJSONToOSMService:
@@ -20,43 +19,15 @@ class GeoJSONToOSMService:
     def _safe_float(v):
         try:
             return float(v)
-        except:
+        except Exception:
             return None
-
-    @staticmethod
-    def _segment_length(coords):
-
-        def haversine(lat1, lon1, lat2, lon2):
-            R = 6371000
-            phi1 = math.radians(lat1)
-            phi2 = math.radians(lat2)
-            dphi = math.radians(lat2 - lat1)
-            dlambda = math.radians(lon2 - lon1)
-
-            a = (
-                math.sin(dphi / 2) ** 2
-                + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-            )
-            return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-        total = 0
-        for i in range(len(coords) - 1):
-            lon1, lat1 = coords[i]
-            lon2, lat2 = coords[i + 1]
-            total += haversine(lat1, lon1, lat2, lon2)
-
-        return total
 
     @classmethod
     def _normalize_properties(cls, props, length):
-        """
-        Experimental normalization layer.
-        Only runs when normalization=True in convert().
-        """
 
         tags = {}
 
-        # Surface normalization
+        # ----- Surface -----
         material = props.get("Material")
         if material:
             material = material.lower().strip()
@@ -64,38 +35,85 @@ class GeoJSONToOSMService:
             if surface:
                 tags["surface"] = surface
 
-        # Width normalization
+        # ----- Width -----
         width = cls._safe_float(props.get("Width"))
         if width and width > 0:
             tags["width"] = f"{width:.2f}"
 
-        # Incline normalization
+        # ----- Grade / Incline -----
         grade = cls._safe_float(props.get("Grade"))
 
         if grade is None:
             zmin = cls._safe_float(props.get("Z_Min"))
             zmax = cls._safe_float(props.get("Z_Max"))
 
-            if zmin is not None and zmax is not None:
+            if zmin is not None and zmax is not None and length > 0:
                 grade = ((zmax - zmin) / length) * 100
 
         if grade is not None:
             tags["incline"] = f"{grade:.1f}%"
 
-        # Name normalization
+            # accessibility hint
+            if grade <= 5:
+                tags["wheelchair"] = "yes"
+            elif grade <= 8:
+                tags["wheelchair"] = "limited"
+            else:
+                tags["wheelchair"] = "no"
+
+        # ----- Road name -----
         road = props.get("RoadName")
         if road and road.strip():
             tags["name"] = road.strip()
 
+        # ----- Sidewalk classification -----
+        type_name = props.get("Type_Name")
+        if type_name and type_name.lower() == "sidewalk":
+            tags["footway"] = "sidewalk"
+
+        # ----- Access status -----
+        status = props.get("Status")
+        if status:
+            if status.lower() == "open":
+                tags["foot"] = "yes"
+            else:
+                tags["foot"] = "no"
+                tags["access"] = "private"
+
+        # ----- Lighting -----
+        lighting = props.get("Lighting")
+        if lighting:
+            if str(lighting).lower() in ("yes", "true", "1"):
+                tags["lit"] = "yes"
+
+        # ----- Smoothness -----
+        condition = props.get("Condition")
+        if condition:
+            condition = condition.lower()
+            if "good" in condition:
+                tags["smoothness"] = "good"
+            elif "fair" in condition:
+                tags["smoothness"] = "intermediate"
+            elif "poor" in condition:
+                tags["smoothness"] = "bad"
+
+        # ----- Curb ramps -----
+        curb = props.get("CurbRamp")
+        if curb:
+            if str(curb).lower() in ("yes", "true", "1"):
+                tags["kerb"] = "lowered"
+            else:
+                tags["kerb"] = "raised"
+
+        # ----- Debug notes (optional) -----
+        notes = props.get("Notes")
+        if notes and notes.strip():
+            tags["note"] = notes.strip()
+
         return tags
 
     @classmethod
-    def convert(cls, *, geojson_path: Path, osm_path: Path, normalize: bool = False):
-
-        with open(geojson_path) as f:
-            data = json.load(f)
-
-        features = data.get("features", [])
+    def convert(cls, *, geojson_path: Path, osm_path: Path, normalize: bool = True):
 
         node_cache = {}
         ways = []
@@ -103,100 +121,97 @@ class GeoJSONToOSMService:
         node_id = 1
         way_id = 1
 
-        # -----------------------------
-        # PASS 1 — Structural filtering
-        # -----------------------------
+        with open(geojson_path, "rb") as f:
 
-        for feature in features:
+            features = ijson.items(f, "features.item")
 
-            geom = feature.get("geometry", {})
-            props = feature.get("properties", {})
+            for feature in features:
 
-            if geom.get("type") != "LineString":
-                continue
+                geom = feature.get("geometry", {})
+                props = feature.get("properties", {})
 
-            coords = geom.get("coordinates", [])
-
-            if len(coords) < 2:
-                continue
-
-            # Status filter
-            if props.get("Status") and props.get("Status") != "Open":
-                continue
-
-            # Width filter
-            width = cls._safe_float(props.get("Width"))
-            if width is not None and width <= 0:
-                continue
-
-            # Geometry length filter
-            length = cls._segment_length(coords)
-            if length < cls.MIN_SEGMENT_LENGTH_M:
-                continue
-
-            way_nodes = []
-
-            for lon, lat in coords:
-
-                lon = cls._safe_float(lon)
-                lat = cls._safe_float(lat)
-
-                if lon is None or lat is None:
+                if geom.get("type") != "LineString":
                     continue
 
-                key = (round(lon, 6), round(lat, 6))
+                coords = geom.get("coordinates", [])
 
-                if key not in node_cache:
-                    node_cache[key] = node_id
-                    node_id += 1
+                if len(coords) < 2:
+                    continue
 
-                way_nodes.append(node_cache[key])
+                # status filter
+                if props.get("Status") and props.get("Status") != "Open":
+                    continue
 
-            if len(way_nodes) < 2:
-                continue
+                length = cls._safe_float(props.get("Feet")) * 0.3048
 
-            ways.append((way_id, way_nodes, props, length))
-            way_id += 1
+                way_nodes = []
+                valid = True
 
-        # -----------------------------
-        # BUILD OSM XML
-        # -----------------------------
+                for lon, lat in coords:
 
-        osm = ET.Element("osm", version="0.6", generator="wayfinder")
+                    lon = cls._safe_float(lon)
+                    lat = cls._safe_float(lat)
 
-        # Write nodes
-        for (lon, lat), nid in node_cache.items():
+                    if lon is None or lat is None:
+                        valid = False
+                        break
 
-            ET.SubElement(
-                osm,
-                "node",
-                id=str(nid),
-                lon=str(lon),
-                lat=str(lat),
-                visible="true",
-            )
+                    # quantized key (fast hash)
+                    key = (int(lon * 1e6), int(lat * 1e6))
 
-        # Write ways
-        for wid, node_ids, props, length in ways:
+                    if key not in node_cache:
+                        node_cache[key] = node_id
+                        node_id += 1
 
-            way = ET.SubElement(osm, "way", id=str(wid), visible="true")
+                    way_nodes.append(node_cache[key])
 
-            for nid in node_ids:
-                ET.SubElement(way, "nd", ref=str(nid))
+                if not valid or len(way_nodes) < 2:
+                    continue
 
-            tags = {
-                "highway": "footway",
-                "footway": "sidewalk",
-                "foot": "yes",
-            }
-
-            if normalize:
-                tags.update(cls._normalize_properties(props, length))
-
-            for k, v in tags.items():
-                ET.SubElement(way, "tag", k=k, v=str(v))
+                ways.append((way_id, way_nodes, props, length))
+                way_id += 1
 
         osm_path.parent.mkdir(parents=True, exist_ok=True)
 
-        tree = ET.ElementTree(osm)
-        tree.write(osm_path, encoding="utf-8", xml_declaration=True)
+        with open(osm_path, "w", encoding="utf-8") as out:
+
+            out.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+            out.write('<osm version="0.6" generator="wayfinder">\n')
+
+            # write nodes
+            for (lon_i, lat_i), nid in node_cache.items():
+
+                lon = lon_i / 1e6
+                lat = lat_i / 1e6
+
+                out.write(
+                    f'<node id="{nid}" lon="{lon}" lat="{lat}" visible="true"/>\n'
+                )
+
+            # write ways
+            for wid, node_ids, props, length in ways:
+
+                out.write(f'<way id="{wid}" visible="true">\n')
+
+                for nid in node_ids:
+                    out.write(f'<nd ref="{nid}"/>\n')
+
+                tags = {
+                    "highway": "footway",
+                    "footway": "sidewalk",
+                    "foot": "yes",
+                }
+
+                if normalize:
+                    tags.update(cls._normalize_properties(props, length))
+
+                import html
+
+                for k, v in tags.items():
+                    k = html.escape(str(k), quote=True)
+                    v = html.escape(str(v), quote=True)
+                    out.write(f'<tag k="{k}" v="{v}"/>\n')
+
+                out.write("</way>\n")
+
+            out.write("</osm>\n")

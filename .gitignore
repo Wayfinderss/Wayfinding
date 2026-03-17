@@ -47,4 +47,6 @@ wayfinder/data/config.json
 app/data/custom_files/*.osm.pbf
 wayfinder/data/valhalla_tiles/
 duplicateways.txt
-Wayfinding/data/valhalla
+data/valhalla/tiles/*
+data/valhalla/*.osm
+data/valhalla/*.geojson
