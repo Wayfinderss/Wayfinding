@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
-import { geocodeAddress, getDirections } from './services/api';
+import { geocodeAddress, getDirections, reverseGeocode } from './services/api';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
@@ -24,6 +24,7 @@ const PLACEHOLDER_STEPS = [
 interface Location {
   lat: number;
   lon: number;
+  label?: string;
 }
 
 export default function Map() {
@@ -41,7 +42,7 @@ export default function Map() {
   const handleSearch = async () => {
   if (!from.trim() || !to.trim()) return;
   setIsLoading(true);
-  
+    setErrorMessage(null);
   try {
     const fromResults = await geocodeAddress(from);
     const toResults = await geocodeAddress(to);
@@ -50,9 +51,14 @@ export default function Map() {
       const start = fromResults[0];
       const end = toResults[0];
       
-      setStartPoint({ lat: start.lat, lon: start.lon });
-      setEndPoint({ lat: end.lat, lon: end.lon });
-      await fetchRoute({ lat: start.lat, lon: start.lon }, { lat: end.lat, lon: end.lon });
+      setStartPoint({ lat: start.lat, lon: start.lon, label: start.label || start.address });
+      setEndPoint({ lat: end.lat, lon: end.lon, label: end.label || end.address });
+      await fetchRoute(
+        { lat: start.lat, lon: start.lon, label: start.label || start.address },
+        { lat: end.lat, lon: end.lon, label: end.label || end.address }
+      );
+    } else {
+      setErrorMessage('No matching addresses found');
     }
   } catch (error) {
     setErrorMessage('Failed to geocode addresses');
@@ -69,21 +75,45 @@ export default function Map() {
   }, [startPoint, endPoint]);
 
   const handleLocationSelect = (lat: number, lon: number) => {
-    if (!startPoint) {
+  setIsLoading(true);
+  setErrorMessage(null);
+
+  try {
+    const result = await reverseGeocode(lat, lon);
+    const label =
+      result?.label ||
+      result?.address ||
+      `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+      if (!startPoint) {
       // First click sets start point
-      setStartPoint({ lat, lon });
+      setStartPoint({ lat, lon, label });
+      setFrom(label);
       setEndPoint(null);
+      setTo('');
       setRoutePolyline(null);
-      setErrorMessage(null);
+      setSearched(false);
+      setSteps(null);
     } else if (!endPoint) {
       // Second click sets end point
-      setEndPoint({ lat, lon });
+      setEndPoint({ lat, lon, label });
+      setTo(label);
     } else {
       // Third click resets and starts over
-      setStartPoint({ lat, lon });
+      setStartPoint({ lat, lon, label });
+      setFrom(label);
       setEndPoint(null);
+      setTo('');
       setRoutePolyline(null);
       setErrorMessage(null);
+      setSearched(false);
+      setSteps(null);
+    }
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    setErrorMessage('Failed to get address from map click');
+  } finally {
+    setIsLoading(false);
     }
   };
 
@@ -143,7 +173,9 @@ export default function Map() {
     setTo('');
   };
 
-  const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
+  const sharedProps = { 
+    startPoint, 
+    endPoint, isLoading, errorMessage, routePolyline, clearRoute };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
