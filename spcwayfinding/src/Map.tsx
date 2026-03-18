@@ -74,7 +74,7 @@ export default function Map() {
     }
   }, [startPoint, endPoint]);
 
-  const handleLocationSelect = (lat: number, lon: number) => {
+  const handleLocationSelect = async (lat: number, lon: number) => {
   setIsLoading(true);
   setErrorMessage(null);
 
