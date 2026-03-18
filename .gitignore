@@ -52,3 +52,6 @@ app/data/custom_files/*.osm.pbf
 app/data/valhalla_tiles/
 duplicateways.txt
 /node_modules
+/.venv312
+spcwayfinding/.env
+spcwayfinding/.env
