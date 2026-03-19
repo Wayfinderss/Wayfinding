@@ -51,11 +51,11 @@ export default function Map() {
       const start = fromResults[0];
       const end = toResults[0];
       
-      setStartPoint({ lat: start.lat, lon: start.lon, label: start.label || start.address });
-      setEndPoint({ lat: end.lat, lon: end.lon, label: end.label || end.address });
+      setStartPoint({ lat: start.lat, lon: start.lon });
+      setEndPoint({ lat: end.lat, lon: end.lon });
       await fetchRoute(
-        { lat: start.lat, lon: start.lon, label: start.label || start.address },
-        { lat: end.lat, lon: end.lon, label: end.label || end.address }
+        { lat: start.lat, lon: start.lon },
+        { lat: end.lat, lon: end.lon }
       );
     } else {
       setErrorMessage('No matching addresses found');
@@ -75,32 +75,38 @@ export default function Map() {
   }, [startPoint, endPoint]);
 
   const handleLocationSelect = async (lat: number, lon: number) => {
+  console.log('handleLocationSelect fired', lat, lon);
+  alert(`clicked ${lat}, ${lon}`);
   setIsLoading(true);
   setErrorMessage(null);
 
   try {
-    const result = await reverseGeocode(lat, lon);
-    const label =
-      result?.label ||
-      result?.address ||
-      `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-
+    const result = await reverseGeocode(lat, lon,);
+      console.log('reverse geocode result:', result);
+      const label =
+        result?.address ??
+        result?.label ??
+        `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
       if (!startPoint) {
       // First click sets start point
-      setStartPoint({ lat, lon, label });
+      setStartPoint({ lat, lon });
       setFrom(label);
       setEndPoint(null);
       setTo('');
       setRoutePolyline(null);
       setSearched(false);
       setSteps(null);
+      console.log('reverse geocode result:', result);
+      console.log('label being used:', label);
     } else if (!endPoint) {
       // Second click sets end point
-      setEndPoint({ lat, lon, label });
+      setEndPoint({ lat, lon });
       setTo(label);
+      console.log('reverse geocode result:', result);
+      console.log('label being used:', label);
     } else {
       // Third click resets and starts over
-      setStartPoint({ lat, lon, label });
+      setStartPoint({ lat, lon });
       setFrom(label);
       setEndPoint(null);
       setTo('');
@@ -175,7 +181,12 @@ export default function Map() {
 
   const sharedProps = { 
     startPoint, 
-    endPoint, isLoading, errorMessage, routePolyline, clearRoute };
+    endPoint,
+     isLoading,
+     errorMessage,
+     routePolyline,
+     clearRoute
+     };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
