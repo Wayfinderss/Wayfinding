@@ -8,9 +8,10 @@ load_dotenv()
 
 router = APIRouter(prefix="/geocode", tags=["geocode"])
 
-GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
-if not GEOAPIFY_API_KEY:
-    raise ValueError("GEOAPIFY_API_KEY not found in environment variables")
+def _get_geoapify_api_key() -> str | None:
+    # Don't crash the whole API at import time if the key is missing.
+    # We instead return a clean 503 from the endpoint.
+    return os.getenv("GEOAPIFY_API_KEY")
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,19 @@ async def geocode_autocomplete(q: str):
     Uses the /v1/geocode/autocomplete endpoint with US filter and Pittsburgh bias.
     """
     try:
+        api_key = _get_geoapify_api_key()
+        if not api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="GEOAPIFY_API_KEY is not set. Add it to your environment (or a .env file) and restart the server.",
+            )
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "https://api.geoapify.com/v1/geocode/autocomplete",
                 params={
                     "text": q,
-                    "apiKey": GEOAPIFY_API_KEY,
+                    "apiKey": api_key,
                     "limit": 5,
                     "filter": "countrycode:us",
                     "bias": "proximity:-79.9585,40.4321",  # ← lon,lat order
@@ -60,3 +68,55 @@ async def geocode_autocomplete(q: str):
     except Exception as e:
         logger.error(f"Geocoding error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Geocoding error: {str(e)}")
+
+
+@router.get("/reverse")
+async def reverse_geocode(lat: float, lon: float):
+    """
+    Geoapify Reverse Geocoding API.
+    Uses /v1/geocode/reverse and returns a single best-match label/address.
+    """
+    try:
+        api_key = _get_geoapify_api_key()
+        if not api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="GEOAPIFY_API_KEY is not set. Add it to your environment (or a .env file) and restart the server.",
+            )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.geoapify.com/v1/geocode/reverse",
+                params={
+                    "lat": lat,
+                    "lon": lon,
+                    "apiKey": api_key,
+                    "limit": 1,
+                },
+                timeout=5.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        features = data.get("features", [])
+        if not features:
+            return {"label": "", "address": "", "lat": lat, "lon": lon}
+
+        props = (features[0] or {}).get("properties", {}) or {}
+        label = props.get("formatted") or props.get("name") or ""
+
+        return {
+            "label": label,
+            "address": label,
+            "lat": props.get("lat", lat),
+            "lon": props.get("lon", lon),
+        }
+
+    except httpx.HTTPError as e:
+        logger.error(f"Geoapify reverse API HTTP error: {e}")
+        raise HTTPException(status_code=500, detail=f"Geoapify API error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Reverse geocoding error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Reverse geocoding error: {str(e)}")
