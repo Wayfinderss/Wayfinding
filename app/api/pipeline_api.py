@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from app.services.valhalla_test import ValhallaTestService
 from app.core.paths import DATA_DIR
 from app.controllers.valhalla_controller import ValhallaPipelineController
 from app.jobs.job_handler import JobManager
@@ -55,6 +54,16 @@ def get_directions(request: DirectionsRequest):
             detail="Valhalla config not found. Run pipeline first."
         )
     
+    # Import lazily so the API can start even if valhalla bindings
+    # aren't available yet; we surface a clean 503 for callers instead.
+    try:
+        from app.services.valhalla_test import ValhallaTestService
+    except Exception as e:  # pragma: no cover
+        raise HTTPException(
+            status_code=503,
+            detail=f"Valhalla service unavailable: {e}",
+        )
+
     valhalla_service = ValhallaTestService()
     
     result = valhalla_service.run(

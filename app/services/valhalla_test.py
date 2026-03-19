@@ -1,10 +1,13 @@
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, TYPE_CHECKING
 from pathlib import Path
-
-from valhalla import Actor
 
 from app.services.base import TestService
 from app.services.register import register
+
+if TYPE_CHECKING:
+    from valhalla import Actor  # pragma: no cover
+else:
+    Actor = Any  # type: ignore
 
 
 @register("valhalla_test")
@@ -60,9 +63,20 @@ class ValhallaTestService(TestService):
 
     # ---------------- internals ----------------
 
-    def _load_actor(self, config_path: Path) -> Actor:
+    def _load_actor(self, config_path: Path):
         if not config_path.exists():
             raise FileNotFoundError(f"Missing valhalla.json at {config_path}")
+
+        # Import lazily so the API can boot even if the optional
+        # Python valhalla bindings are not installed/working yet.
+        try:
+            from valhalla import Actor  # type: ignore
+        except Exception as e:  # pragma: no cover
+            raise RuntimeError(
+                "Valhalla Python bindings are unavailable. "
+                "Install/fix the `valhalla` dependency (and its transitive deps) "
+                "or switch to calling a Valhalla HTTP service."
+            ) from e
         return Actor(str(config_path))
 
     def _resolve_target(self, args: Dict[str, Any]) -> Dict[str, float]:
