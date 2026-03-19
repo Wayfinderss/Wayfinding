@@ -6,9 +6,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        // target: 'http://localhost:8002',
         target: 'https://valhalla1.openstreetmap.de',
         changeOrigin: true,
+        // /api/route  → /route
+        // /api/height → /height
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
