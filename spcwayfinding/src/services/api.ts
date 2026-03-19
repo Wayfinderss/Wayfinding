@@ -27,27 +27,29 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
   return data.results;
 }
 
+export interface ReverseGeocodeResult {
+  label: string;
+  address: string;
+  lat: number;
+  lon: number;
+}
+
 export async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeResult | null> {
   const res = await fetch(
     `${API_BASE}/geocode/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
   );
-  if (!res.ok) throw new Error("Reverse geocoding failed");
+  if (!res.ok) throw new Error('Reverse geocoding failed');
 
   const data = await res.json();
-
-  const feature = data?.features?.[0];
-  const props = feature?.properties;
-
-  if (!props) return null;
+  if (!data) return null;
 
   return {
-    label: props.formatted || props.address_line1 || `${lat}, ${lon}`,
-    address: props.formatted || props.address_line1 || `${lat}, ${lon}`,
-    lat: props.lat ?? lat,
-    lon: props.lon ?? lon,
+    label: data.label || data.address || `${lat}, ${lon}`,
+    address: data.address || data.label || `${lat}, ${lon}`,
+    lat: data.lat ?? lat,
+    lon: data.lon ?? lon,
   };
-}
-export async function getDirections(request: DirectionsRequest) {
+}export async function getDirections(request: DirectionsRequest) {
   const res = await fetch(`${API_BASE}/valhalla/directions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
