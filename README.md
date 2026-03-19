@@ -8,9 +8,9 @@ When you pick a start and end point on the map, a chart appears at the bottom of
 
 There are two separate requests happening when you set a route:
 
-1. **Route request (existing)** — goes to our backend, gets the path drawn on the map and the turn-by-turn directions. Nothing changed here.
+1. **Route request** — goes to our backend, gets the path drawn on the map and the turn-by-turn directions. 
 
-2. **Elevation request (new)** — goes directly to a Valhalla routing server (via a local proxy) and asks for elevation readings every 30 metres along the same route. The response includes an array of height values that get turned into the chart.
+2. **Elevation request** — goes directly to a Valhalla routing server (via a local proxy) and asks for elevation readings every 30 metres along the same route. The response includes an array of height values that get turned into the chart.
 
 These two requests are independent. If the elevation request fails, the map and directions still work normally.
 
