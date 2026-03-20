@@ -37,11 +37,20 @@ interface Step {
       overflow-y: auto;
       font-family: 'DM Sans', sans-serif;
     }
-  
+
+    /* ── Sticky top panel ── */
+    .sidebar-sticky {
+      flex-shrink: 0;
+      padding: 10px 10px 0;
+      background: #fcfcfc;
+      border-bottom: 1px solid #111;
+      padding-bottom: 10px;
+    }
+
     .sidebar-header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 5px;
       margin-bottom: 28px;
     }
   
@@ -116,6 +125,13 @@ interface Step {
     .search-btn:hover { background: #5a7ee0; }
     .search-btn:active { transform: scale(0.98); }
   
+    /* ── Scrollable bottom panel ── */
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 10px 14px;
+    }
+
     .divider {
       height: 1px;
       background: #111;
@@ -228,78 +244,84 @@ interface Step {
       <>
         <style>{styles}</style>
         <aside className="sidebar">
-          <div className="sidebar-header">
-            <span className="sidebar-title">Wayfinders</span>
-          </div>
-  
-          <div className="route-inputs">
-            <div className="input-row">
-              <div className="dot-col"><div className="dot origin" /></div>
-              <input
-                className="route-input"
-                placeholder="From — starting point"
-                value={from}
-                onChange={e => setFrom(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              />
+ 
+          {/* ── Fixed top: title + inputs + button ── */}
+          <div className="sidebar-sticky">
+            <div className="sidebar-header">
+              <span className="sidebar-title">Wayfinders</span>
             </div>
-            <div className="input-row">
-              <div className="dot-col"><div className="dot dest" /></div>
-              <input
-                className="route-input"
-                placeholder="To — destination"
-                value={to}
-                onChange={e => setTo(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              />
+ 
+            <div className="route-inputs">
+              <div className="input-row">
+                <div className="dot-col"><div className="dot origin" /></div>
+                <input
+                  className="route-input"
+                  placeholder="From — starting point"
+                  value={from}
+                  onChange={e => setFrom(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <div className="input-row">
+                <div className="dot-col"><div className="dot dest" /></div>
+                <input
+                  className="route-input"
+                  placeholder="To — destination"
+                  value={to}
+                  onChange={e => setTo(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
             </div>
+ 
+            <button className="search-btn" onClick={handleSearch}>
+              Get Directions
+            </button>
           </div>
-  
-          <button className="search-btn" onClick={handleSearch}>
-            Get Directions
-          </button>
-  
-          <div className="divider" />
-  
-          {/* Status messages */}
-          {clickHint && !isLoading && !errorMessage && !routePolyline && (
-            <div className="status-box hint">👆 {clickHint}</div>
-          )}
-          {isLoading && <div className="status-box loading">🔄 Finding route...</div>}
-          {errorMessage && <div className="status-box error">⚠️ {errorMessage}</div>}
-          {routePolyline && !errorMessage && <div className="status-box success">✓ Route found!</div>}
-          {(startPoint || endPoint) && (
-            <button className="clear-btn" onClick={clearRoute}>Clear Route</button>
-          )}
-  
-          {/* Directions */}
-          <div className="directions-header">
-            <span className="directions-label">Directions</span>
-            {steps && <span className="directions-meta">~9 min · 2.5 mi</span>}
-          </div>
-  
-          {!searched ? (
-            <div className="directions-empty">
-              <p className="directions-empty-text">
-                Enter a starting point and destination, or click two points on the map, to see turn-by-turn directions here.
-              </p>
+ 
+          {/* ── Scrollable bottom: status + directions ── */}
+          <div className="sidebar-scroll">
+            {/* <div className="divider" /> */}
+ 
+            {clickHint && !isLoading && !errorMessage && !routePolyline && (
+              <div className="status-box hint">👆 {clickHint}</div>
+            )}
+            {isLoading && <div className="status-box loading">🔄 Finding route...</div>}
+            {errorMessage && <div className="status-box error">⚠️ {errorMessage}</div>}
+            {routePolyline && !errorMessage && <div className="status-box success">✓ Route found!</div>}
+            {(startPoint || endPoint) && (
+              <button className="clear-btn" onClick={clearRoute}>Clear Route</button>
+            )}
+ 
+            <div className="directions-header">
+              <span className="directions-label">Directions</span>
+              {steps && <span className="directions-meta">~9 min · 2.5 mi</span>}
             </div>
-          ) : (
-            <div className="step-list">
-              {steps!.map((step, i) => (
-                <div className="step" key={i}>
-                  <div className="step-number-col">
-                    <div className="step-num">{i + 1}</div>
-                    <div className="step-connector" />
+ 
+            {!searched ? (
+              <div className="directions-empty">
+                <p className="directions-empty-text">
+                  Enter a starting point and destination, or click two points on the map, to see turn-by-turn directions here.
+                </p>
+              </div>
+            ) : (
+              <div className="step-list">
+                {steps!.map((step, i) => (
+                  <div className="step" key={i}>
+                    <div className="step-number-col">
+                      <div className="step-num">{i + 1}</div>
+                      <div className="step-connector" />
+                    </div>
+                    <div className="step-body">
+                      <div className="step-instruction">{step.instruction}</div>
+                      <div className="step-detail">{step.detail}</div>
+                    </div>
                   </div>
-                  <div className="step-body">
-                    <div className="step-instruction">{step.instruction}</div>
-                    <div className="step-detail">{step.detail}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+ 
         </aside>
       </>
     );
