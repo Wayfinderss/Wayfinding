@@ -50,3 +50,4 @@ duplicateways.txt
 data/valhalla/tiles/*
 data/valhalla/*.osm
 data/valhalla/*.geojson
+data/valhalla/chunks/*

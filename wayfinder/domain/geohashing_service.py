@@ -69,20 +69,13 @@ class Geohasher:
 
         return (lat_range[0] + lat_range[1]) / 2, (lng_range[0] + lng_range[1]) / 2
 
-
     def neighbors(self, geohash: str) -> list[str]:
-        """Return the 8 neighboring geohash cells (N, S, E, W + diagonals)."""
         lat, lng = self.decode(geohash)
         precision = len(geohash)
-
-        # Compute approximate cell dimensions by sampling corner hashes
-        lat0, lng0 = self.decode(geohash[:-1] + "0")
-        lat1, lng1 = self.decode(geohash[:-1] + "z")
-        dlat = abs(lat1 - lat0) * 1.1
-        dlng = abs(lng1 - lng0) * 1.1
-
+        dlat = 180.0 / (2 ** (2.5 * precision - 1))
+        dlng = 360.0 / (2 ** (2.5 * precision))
         offsets = [
-            (dlat, 0), (-dlat, 0), (0, dlng), (0, -dlng),       # N, S, E, W
-            (dlat, dlng), (dlat, -dlng), (-dlat, dlng), (-dlat, -dlng),  # diagonals
+            (dlat, 0), (-dlat, 0), (0, dlng), (0, -dlng),
+            (dlat, dlng), (dlat, -dlng), (-dlat, dlng), (-dlat, -dlng),
         ]
-        return [self.encode(lat + olat, lng + olng, precision) for olat, olng in offsets]
+        return [self.encode(lat + o[0], lng + o[1], precision) for o in offsets]

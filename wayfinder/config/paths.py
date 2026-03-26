@@ -35,3 +35,9 @@ VALHALLA_CONFIG_PATH = VALHALLA_DATA_DIR / "valhalla.json"
 
 VALHALLA_TILES_DIR = VALHALLA_DATA_DIR / "tiles"
 TILES_DIR = VALHALLA_TILES_DIR
+
+# -------------------------------------------------------------------
+# Chunk storage (GeoJSON + PBF per geohash bucket)
+# -------------------------------------------------------------------
+
+CHUNKS_DIR = VALHALLA_DATA_DIR / "chunks"
