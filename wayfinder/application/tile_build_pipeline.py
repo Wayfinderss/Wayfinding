@@ -8,6 +8,9 @@ from wayfinder.domain.geojson_to_osm_service import GeoJSONToOSMService
 from engines.valhalla_engine.tile_builder import ValhallaTileBuilder
 from wayfinder.config.paths import (
     CHUNKS_DIR,
+    CHUNK_GEOJSON_DIR,
+    CHUNK_OSM_DIR,
+    CHUNK_PBF_DIR,
     CUSTOM_GEOJSON_PATH,
     GENERATED_OSM_PATH,
     GENERATED_PBF_PATH,
@@ -82,9 +85,20 @@ class TileBuildPipeline:
         }
 
     def _write_chunk(self, geohash: str, features: list) -> Path:
-        geojson_path = CHUNKS_DIR / f"{geohash}.geojson"
-        osm_path     = CHUNKS_DIR / f"{geohash}.osm"
-        pbf_path     = CHUNKS_DIR / f"{geohash}.pbf"
+
+        prefix = geohash[:5]
+
+        geojson_dir = CHUNK_GEOJSON_DIR / prefix
+        osm_dir = CHUNK_OSM_DIR / prefix
+        pbf_dir = CHUNK_PBF_DIR / prefix
+
+        geojson_dir.mkdir(parents=True, exist_ok=True)
+        osm_dir.mkdir(parents=True, exist_ok=True)
+        pbf_dir.mkdir(parents=True, exist_ok=True)
+
+        geojson_path = geojson_dir / f"{geohash}.geojson"
+        osm_path = osm_dir / f"{geohash}.osm"
+        pbf_path = pbf_dir / f"{geohash}.pbf"
 
         geojson_path.write_text(
             json.dumps({"type": "FeatureCollection", "features": features}),
@@ -92,13 +106,19 @@ class TileBuildPipeline:
         )
 
         print(f"  [{geohash}] Step 1: GeoJSON → OSM")
-        GeoJSONToOSMService.convert(geojson_path=geojson_path, osm_path=osm_path)
+
+        GeoJSONToOSMService.convert(
+            geojson_path=geojson_path,
+            osm_path=osm_path
+        )
 
         print(f"  [{geohash}] Step 2: OSM → PBF")
+
         subprocess.run(
             ["osmium", "sort", str(osm_path), "-o", str(pbf_path), "--overwrite"],
             check=True,
         )
+
         osm_path.unlink(missing_ok=True)
 
         return pbf_path

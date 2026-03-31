@@ -19,7 +19,6 @@ CUSTOM_GEOJSON_PATH = VALHALLA_DATA_DIR / "custom_sidewalks.geojson"
 # -------------------------------------------------------------------
 
 GENERATED_OSM_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm"
-
 GENERATED_PBF_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm.pbf"
 GENERATED_OPL_PATH = VALHALLA_DATA_DIR / "generated_sidewalks.osm.opl"
 
@@ -37,7 +36,14 @@ VALHALLA_TILES_DIR = VALHALLA_DATA_DIR / "tiles"
 TILES_DIR = VALHALLA_TILES_DIR
 
 # -------------------------------------------------------------------
-# Chunk storage (GeoJSON + PBF per geohash bucket)
+# Chunk storage
 # -------------------------------------------------------------------
 
 CHUNKS_DIR = VALHALLA_DATA_DIR / "chunks"
+
+# Source chunks (editable)
+CHUNK_GEOJSON_DIR = CHUNKS_DIR / "geojson"
+
+# Derived chunks (temporary build artifacts)
+CHUNK_PBF_DIR = CHUNKS_DIR / "pbf"
+CHUNK_OSM_DIR = CHUNKS_DIR / "osm"
