@@ -1,3 +1,4 @@
+import SPC_LOGO from './assets/SPC_Blk.png'; 
 interface Step {
     instruction: string;
     detail: string;
@@ -19,11 +20,24 @@ interface Step {
     clearRoute: () => void;
   }
   
+  // const SPC_LOGO = `data:image/png`
+
+// ─────────────────────────────────────────────
+//  Styles
+// ─────────────────────────────────────────────
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
   
     * { box-sizing: border-box; margin: 0; padding: 0; }
   
+    :root {
+      --spc-blue: #2e55a5;
+      --spc-blue-dark: #1e3c7a;
+      --spc-blue-light: #3d6abf;
+      --spc-blue-pale: #e8eef8;
+      --spc-accent: #c8f135;
+    }
+ 
     .sidebar {
       width: 340px;
       min-width: 340px;
@@ -31,11 +45,28 @@ interface Step {
       border-right: 1px solid #111;
       display: flex;
       flex-direction: column;
-      padding: 24px 20px;
       gap: 0;
       z-index: 1000;
-      overflow-y: auto;
+      height: 100vh;
+      overflow: hidden;  /* to make static */
       font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── Blue header banner — logo/title only ── */
+    .sidebar-header-banner {
+      flex-shrink: 0;
+      background: var(--spc-blue);
+      padding: 14px 18px;
+      border-bottom: 3px solid var(--spc-blue-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo {
+      height: 34px;
+      width: auto;
+      filter: brightness(0) invert(1);
     }
 
     /* ── Sticky top panel ── */
@@ -54,11 +85,32 @@ interface Step {
       margin-bottom: 28px;
     }
   
+    .sidebar-title-block {
+      display: flex;
+      flex-direction: column;
+    }
+  
     .sidebar-title {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 600;
-      color: #111;
-      letter-spacing: -0.3px;
+      color: #ffffff;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
+    }
+ 
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    /* ── Inputs + button panel ── */
+    .sidebar-inputs-panel {
+      flex-shrink: 0;
+      background: #fcfcfc;
+      border-bottom: 1px solid #d0d9ee;
+      padding: 14px 16px;
     }
   
     .route-inputs {
@@ -109,17 +161,17 @@ interface Step {
   
     .search-btn {
       width: 100%;
-      margin-top: 16px;
       padding: 12px;
-      background: #6e94f5;
+      background: var(--spc-blue);
       border: none;
       border-radius: 10px;
       font-family: 'DM Sans', sans-serif;
       font-size: 14px;
       font-weight: 600;
-      color: #0f0f0f;
+      color: #ffffff;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(46,85,165,0.25);
     }
   
     .search-btn:hover { background: #5a7ee0; }
@@ -129,6 +181,7 @@ interface Step {
     .sidebar-scroll {
       flex: 1;
       overflow-y: auto;
+      min-height: 0;       
       padding: 10px 10px 14px;
     }
 
@@ -146,8 +199,8 @@ interface Step {
     }
     .status-box.loading { background: #fff3e0; color: #e65100; }
     .status-box.error   { background: #ffebee; color: #c62828; border: 1px solid #ef5350; }
-    .status-box.success { background: #e8f5e9; color: #2e7d32; font-weight: 600; }
-    .status-box.hint    { background: #f0f4ff; color: #3a3a3a; }
+    .status-box.success { background: #e8eef8; color: var(--spc-blue-dark); font-weight: 600; border: 1px solid #b8caeb; }
+    .status-box.hint    { background: var(--spc-blue-pale); color: var(--spc-blue); border: 1px solid #c5d3ee; }
   
     .clear-btn {
       width: 100%;
@@ -177,7 +230,7 @@ interface Step {
       font-weight: 600;
       letter-spacing: 1.2px;
       text-transform: uppercase;
-      color: #555;
+      color: var(--spc-blue);
     }
   
     .directions-meta { font-size: 12px; color: #555; }
@@ -246,11 +299,19 @@ interface Step {
         <aside className="sidebar">
  
           {/* ── Fixed top: title + inputs + button ── */}
-          <div className="sidebar-sticky">
-            <div className="sidebar-header">
+          <div className="sidebar-header-banner">
+            <img src={SPC_LOGO} alt="SPC Logo" className="sidebar-logo" />
+
+          {/* <div className="sidebar-sticky"> */}
+            <div className="sidebar-title-block">
+            {/* <div className="sidebar-header"> */}
               <span className="sidebar-title">Wayfinders</span>
+              <span className="sidebar-subtitle">Navigation</span>
             </div>
- 
+          </div>
+
+            {/* ── White inputs panel ── */}
+          <div className="sidebar-inputs-panel">
             <div className="route-inputs">
               <div className="input-row">
                 <div className="dot-col"><div className="dot origin" /></div>
