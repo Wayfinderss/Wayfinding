@@ -22,6 +22,14 @@ const PLACEHOLDER_STEPS = [
   { instruction: 'Arrive at your destination on the right', detail: '—' },
 ];
 
+function InvalidateSize({ trigger }: { trigger: any }) {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 300);
+  }, [trigger]);
+  return null;
+}
+
 interface Location {
   lat: number;
   lon: number;
