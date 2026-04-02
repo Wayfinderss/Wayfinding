@@ -12,7 +12,7 @@ import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
 
-// Placeholder step data (TODO: replace with real routing API results)
+// Placeholder step data
 const PLACEHOLDER_STEPS = [
   { instruction: 'Head north on Forbes Ave toward Craig St', detail: '0.2 mi · 1 min' },
   { instruction: 'Turn right onto Craig St', detail: '0.1 mi · 1 min' },
@@ -45,20 +45,8 @@ interface ValhallaLocation {
 interface ValhallaManeuver {
   type: number;
   instruction: string;
-  verbal_succinct_transition_instruction?: string;
-  verbal_pre_transition_instruction?: string;
-  verbal_post_transition_instruction?: string;
-  street_names?: string[];
-  bearing_before?: number;
-  bearing_after?: number;
   time?: number;
   length?: number;
-  cost?: number;
-  begin_shape_index?: number;
-  end_shape_index?: number;
-  rough?: boolean;
-  travel_mode?: string;
-  travel_type?: string;
 }
 
 interface ValhallaLeg {
@@ -75,10 +63,6 @@ interface ValhallaLeg {
 interface ValhallaTrip {
   locations?: ValhallaLocation[];
   legs: ValhallaLeg[];
-  summary?: {
-    length?: number;
-    time?: number;
-  };
 }
 
 interface ValhallaSuccessResponse {
@@ -90,8 +74,6 @@ interface ValhallaErrorResponse {
   status: 'no_route';
   error_code: number;
   error_message: string;
-  failure_reason?: string;
-  logged_attempt_id?: number | null;
 }
 
 type ValhallaRouteResponse = ValhallaSuccessResponse | ValhallaErrorResponse;
@@ -109,8 +91,8 @@ export default function Map() {
   const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
   const [searched, setSearched] = useState(false);
 
-  const [activeBasemap, setTileKey] = useState(0); //forces a reset when basemap icon is clicked 
-  const [showElevation, setShowElevation] = useState(false); //for elevation toggle 
+  const [activeBasemap, setTileKey] = useState(0);
+  const [showElevation, setShowElevation] = useState(false);
 
   const handleSearch = () => {
     if (!from.trim() || !to.trim()) return;
@@ -144,8 +126,6 @@ export default function Map() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    console.log('Fetching route from', start, 'to', end);
-
     try {
       const response = await fetch('/valhalla/route', {
         method: 'POST',
@@ -163,14 +143,12 @@ export default function Map() {
       });
 
       const rawText = await response.text();
-      console.log('Raw response:', rawText);
 
       let data: ValhallaRouteResponse;
+
       try {
         data = JSON.parse(rawText) as ValhallaRouteResponse;
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        console.log('RAW RESPONSE:', rawText);
+      } catch {
         setErrorMessage('Routing service returned invalid JSON');
         setRoutePolyline(null);
         return;
@@ -179,34 +157,40 @@ export default function Map() {
       setFullRouteData(data);
 
       if (!response.ok || data.status !== 'ok') {
-        if ('error_code' in data) {
-          if (data.error_code === 442) {
-            setErrorMessage('No route found - these locations are not connected by sidewalks');
-          } else if (data.error_code === 171) {
-            setErrorMessage('No sidewalks found near one or both locations');
-          } else {
-            setErrorMessage(data.error_message || 'Routing error');
-          }
-        } else {
-          setErrorMessage(`Routing error: HTTP ${response.status}`);
-        }
+        setErrorMessage('Routing error');
         setRoutePolyline(null);
         return;
       }
 
       const encodedShape = data.trip?.legs?.[0]?.shape;
 
-      if (typeof encodedShape !== 'string' || encodedShape.length === 0) {
+      if (!encodedShape) {
         setErrorMessage('Invalid response from routing engine');
-        setRoutePolyline(null);
         return;
       }
 
       setRoutePolyline(encodedShape);
+
+      const maneuvers = data.trip?.legs?.[0]?.maneuvers ?? [];
+
+      const parsedSteps = maneuvers.map((m) => {
+        const distance = m.length ? m.length.toFixed(2) : '0';
+        const minutes = m.time ? Math.round(m.time / 60) : 0;
+
+        return {
+          instruction: m.instruction,
+          detail: m.length && m.length > 0
+            ? `${distance} mi · ${minutes} min`
+            : '—'
+        };
+      });
+
+      setSteps(parsedSteps);
+      setSearched(true);
+
     } catch (error) {
-      console.error('Error fetching route:', error);
+      console.error(error);
       setErrorMessage('Failed to connect to routing service');
-      setRoutePolyline(null);
     } finally {
       setIsLoading(false);
     }
@@ -248,12 +232,14 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
-          <InvalidateSize trigger={[showElevation, routePolyline]} /> {/* fixes delay in map reload */}
+          <InvalidateSize trigger={[showElevation, routePolyline]} />
+
           <TileLayer
             key={activeBasemap}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
