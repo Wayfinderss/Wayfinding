@@ -1,5 +1,7 @@
-//implementation of basemap icon might need more work after we add accessiblity features
+//implementation of basemap icon might need more work after we add accessiblity features idk what we want it to be doing
 import { useState } from "react";
+type AccessibilityProfile = "wheelchair" | "cane" | "custom";
+
 
 // ─────────────────────────────────────────────
 //  Types
@@ -28,35 +30,18 @@ const LEGEND_ITEMS = [
     desc: "Calculated walking / driving path",
     icon: "─",
   },
-// take out if not adding in options for closures and etc
-//   {
-//     color: "#ffb347",
-//     label: "Construction Zone",
-//     desc: "Active roadwork — expect delays",
-//     icon: "▲",
-//   },
 ];
- 
+
+// Profile presets — fake numbers for now need backend 
+const PROFILE_PRESETS: Record<
+  "wheelchair" | "cane",
+  { avoidStaircases: boolean; maxIncline: number }
+> = {
+  wheelchair: { avoidStaircases: true, maxIncline: 5 },
+  cane: { avoidStaircases: true, maxIncline: 10 },
+};
+
 const LAYERS = [
-  {
-    id: "accessible_routes",
-    label: "Accessible Routes",
-    desc: "Paths with curb cuts, ramps & smooth surfaces",
-    icon: "♿",
-    enabled: true,
-    badge: "A11Y",
-    badgeColor: "#a78bfa",
-  },
-// take out if not adding in options for closures and etc
-//   {
-//     id: "construction",
-//     label: "Construction Zones",
-//     desc: "Live roadwork and temporary path closures",
-//     icon: "🚧",
-//     enabled: true,
-//     badge: "LIVE",
-//     badgeColor: "#ffb347",
-//   },
   {
     id: "elevation",
     label: "Elevation Profile",
@@ -101,6 +86,45 @@ const IconClose = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
     <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     <line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const IconWheelchair = ({ size = 22 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="4" r="2" fill="currentColor" />
+    <path d="M9 8h4l1.5 5H18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M9 8l-1 5h5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <circle cx="8.5" cy="18.5" r="2.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+    <circle cx="16" cy="18.5" r="2.5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+    <path d="M13.5 13H16.5a1 1 0 011 1v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+  </svg>
+);
+ 
+// Cane / walking aid icon
+const IconCane = ({ size = 22 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="4" r="2" fill="currentColor" />
+    <path d="M12 6v5l-2 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M12 11l2 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    <path d="M10 14l-1.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    <path d="M14 14l1.5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    {/* cane */}
+    <path d="M17 8 Q19 10 18 14 L17 19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    <path d="M15.5 19 Q16 20 17 19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+  </svg>
+);
+ 
+// Custom profile icon (sliders / person)
+const IconCustomProfile = ({ size = 22 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="5" r="2" fill="currentColor" />
+    <path d="M9 8.5c0 0 .5 2 3 2s3-2 3-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    <path d="M8 20v-5l-1-4h10l-1 4v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    {/* little slider bars overlaid bottom-right */}
+    <line x1="15" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <circle cx="17.5" cy="12" r="1.2" fill="currentColor" />
+    <line x1="15" y1="16" x2="21" y2="16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <circle cx="19" cy="16" r="1.2" fill="currentColor" />
   </svg>
 );
 
@@ -375,6 +399,152 @@ const styles = `
  
   .toggle.on .toggle-thumb { transform: translateX(14px); }
 
+
+  /* ── Accessibility profile picker ── */
+  .profile-picker {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+ 
+  .profile-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 6px 8px;
+    border-radius: 10px;
+    border: 1.5px solid #eee;
+    background: #fff;
+    color: #888;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+ 
+  .profile-btn:hover {
+    border-color: #a78bfa;
+    background: #f5f2ff;
+    color: #7c3aed;
+  }
+ 
+  .profile-btn.selected {
+    border-color: #6e94f5;
+    background: #f0f4ff;
+    color: #3b5bdb;
+  }
+ 
+  .profile-btn-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    line-height: 1;
+    color: inherit;
+  }
+ 
+  /* ── Staircase + incline controls ── */
+  .a11y-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 12px 10px;
+    border-radius: 10px;
+    border: 1px solid #e8e8f0;
+    background: #fafafa;
+  }
+ 
+  .a11y-control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+ 
+  .a11y-control-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #333;
+    flex-shrink: 0;
+  }
+ 
+  .a11y-control-sublabel {
+    font-size: 10.5px;
+    color: #aaa;
+    margin-top: 1px;
+  }
+ 
+  /* incline slider */
+  .incline-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+ 
+  .incline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+ 
+  .incline-value {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6e94f5;
+    font-family: 'DM Mono', monospace;
+    background: #eef2ff;
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+ 
+  .incline-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: #e0e0e0;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+ 
+  .incline-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #6e94f5;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(110,148,245,0.4);
+    transition: transform 0.15s;
+  }
+ 
+  .incline-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .incline-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+  .incline-slider:disabled::-webkit-slider-thumb { cursor: not-allowed; }
+ 
+  .incline-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #bbb;
+    font-family: 'DM Mono', monospace;
+    padding: 0 1px;
+  }
+ 
+  .locked-note {
+    font-size: 10px;
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: -2px;
+  }
 `;
  
 // ─────────────────────────────────────────────
@@ -414,9 +584,36 @@ function LayerPanel({
     showElevation: boolean;
     onToggleElevation: (val: boolean) => void;
   }) {
+    // ── Accessibility profile state ──
+    const [profile, setProfile] = useState<AccessibilityProfile>("custom");
+    const [avoidStaircases, setAvoidStaircases] = useState(false);
+    const [maxIncline, setMaxIncline] = useState(15);
+   
+    // ── Other layers ──
     const [layers, setLayers] = useState(LAYERS);
-  
-    const toggle = (id: string) => {
+   
+    const selectProfile = (p: AccessibilityProfile) => {
+      setProfile(p);
+      if (p !== "custom") {
+        const preset = PROFILE_PRESETS[p];
+        setAvoidStaircases(preset.avoidStaircases);
+        setMaxIncline(preset.maxIncline);
+      }
+    };
+   
+    const isLocked = profile !== "custom";
+   
+    const handleStaircaseToggle = () => {
+      if (isLocked) return;
+      setAvoidStaircases((v) => !v);
+    };
+   
+    const handleInclineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (isLocked) return;
+      setMaxIncline(Number(e.target.value));
+    };
+   
+    const toggleLayer = (id: string) => {
       if (id === "elevation") {
         onToggleElevation(!showElevation);
       } else {
@@ -425,88 +622,161 @@ function LayerPanel({
         );
       }
     };
-  
-    const layersWithElevation = layers.map(l =>
+   
+    const layersWithElevation = layers.map((l) =>
       l.id === "elevation" ? { ...l, enabled: showElevation } : l
     );
-  
-    const a11yLayers = layersWithElevation.filter((l) => l.badge === "A11Y");
-    const otherLayers = layersWithElevation.filter((l) => l.badge !== "A11Y");
-
+   
     return (
-    <div className="panel-body">
-      <div className="a11y-banner">
-        <span className="a11y-banner-icon">ℹ️</span>
-        <span>Toggle map overlays to show or hide features. Accessibility layers are (fill in later depending on backend).</span>
-        {/* idk how we want to do this backend wise but we can change this later  */}
+      <div className="panel-body">
+        <div className="a11y-banner">
+          <span className="a11y-banner-icon">ℹ️</span>
+          <span>
+            Toggle map overlays to show or hide features. Accessibility layers are
+            (fill in later depending on backend).
+          </span>
+        </div>
+   
+        {/* ── Accessibility section ── */}
+        <div className="layer-section-label">Accessibility</div>
+   
+        {/* Profile picker */}
+        <div className="profile-picker">
+          <button
+            className={`profile-btn${profile === "wheelchair" ? " selected" : ""}`}
+            onClick={() => selectProfile("wheelchair")}
+            aria-label="Wheelchair profile"
+            title="Wheelchair — avoids stairs, max 5% incline"
+          >
+            <IconWheelchair size={24} />
+            <span className="profile-btn-label">Wheelchair</span>
+          </button>
+   
+          <button
+            className={`profile-btn${profile === "cane" ? " selected" : ""}`}
+            onClick={() => selectProfile("cane")}
+            aria-label="Cane profile"
+            title="Cane — avoids stairs, max 10% incline"
+          >
+            <IconCane size={24} />
+            <span className="profile-btn-label">Cane</span>
+          </button>
+   
+          <button
+            className={`profile-btn${profile === "custom" ? " selected" : ""}`}
+            onClick={() => selectProfile("custom")}
+            aria-label="Custom profile"
+            title="Custom — set your own preferences"
+          >
+            <IconCustomProfile size={24} />
+            <span className="profile-btn-label">Custom</span>
+          </button>
+        </div>
+   
+        {/* Staircase + incline controls */}
+        <div className="a11y-controls">
+          {/* Staircase toggle */}
+          <div className="a11y-control-row">
+            <div>
+              <div className="a11y-control-label">Avoid Staircases</div>
+              <div className="a11y-control-sublabel">Prefer ramps & level paths</div>
+            </div>
+            <button
+              className={`toggle${avoidStaircases ? " on" : ""}`}
+              onClick={handleStaircaseToggle}
+              aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+              style={isLocked ? { opacity: 0.65, cursor: "not-allowed" } : {}}
+            >
+              <div className="toggle-thumb" />
+            </button>
+          </div>
+   
+          {/* Incline slider */}
+          <div className="incline-row">
+            <div className="incline-header">
+              <div>
+                <div className="a11y-control-label">Max Incline</div>
+                <div className="a11y-control-sublabel">Route grade limit</div>
+              </div>
+              <span className="incline-value">{maxIncline}%</span>
+            </div>
+            <input
+              type="range"
+              className="incline-slider"
+              min={0}
+              max={30}
+              step={1}
+              value={maxIncline}
+              onChange={handleInclineChange}
+              disabled={isLocked}
+              aria-label={`Max incline: ${maxIncline}%`}
+            />
+            <div className="incline-ticks">
+              <span>0%</span>
+              <span>5%</span>
+              <span>10%</span>
+              <span>15%</span>
+              <span>20%</span>
+              <span>25%</span>
+              <span>30%</span>
+            </div>
+          </div>
+   
+          {isLocked && (
+            <div className="locked-note">
+              <span>🔒</span>
+              <span>
+                Preset values applied — switch to{" "}
+                <strong
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  onClick={() => selectProfile("custom")}
+                >
+                  Custom
+                </strong>{" "}
+                to edit
+              </span>
+            </div>
+          )}
+        </div>
+   
+        {/* ── Other layers ── */}
+        <div className="layer-section-label" style={{ marginTop: 8 }}>
+          Other Layers
+        </div>
+        {layersWithElevation.map((layer) => (
+          <div
+            key={layer.id}
+            className={`layer-item${layer.enabled ? " active" : ""}`}
+            onClick={() => toggleLayer(layer.id)}
+          >
+            <span className="layer-icon">{layer.icon}</span>
+            <div className="layer-text">
+              <div className="layer-label-row">
+                <span className="layer-name">{layer.label}</span>
+                {layer.badge && (
+                  <span className="badge" style={{ background: layer.badgeColor }}>
+                    {layer.badge}
+                  </span>
+                )}
+              </div>
+              <div className="layer-desc">{layer.desc}</div>
+            </div>
+            <button
+              className={`toggle${layer.enabled ? " on" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLayer(layer.id);
+              }}
+              aria-label={`${layer.enabled ? "Disable" : "Enable"} ${layer.label}`}
+            >
+              <div className="toggle-thumb" />
+            </button>
+          </div>
+        ))}
       </div>
- 
-      <div className="layer-section-label">Accessibility</div>
-      {a11yLayers.map((layer) => (
-        <div
-          key={layer.id}
-          className={`layer-item${layer.enabled ? " active" : ""}`}
-          onClick={() => toggle(layer.id)}
-        >
-          <span className="layer-icon">{layer.icon}</span>
-          <div className="layer-text">
-            <div className="layer-label-row">
-              <span className="layer-name">{layer.label}</span>
-              {layer.badge && (
-                <span
-                  className="badge"
-                  style={{ background: layer.badgeColor }}
-                >
-                  {layer.badge}
-                </span>
-              )}
-            </div>
-            <div className="layer-desc">{layer.desc}</div>
-          </div>
-          <button
-            className={`toggle${layer.enabled ? " on" : ""}`}
-            onClick={(e) => { e.stopPropagation(); toggle(layer.id); }}
-            aria-label={`${layer.enabled ? "Disable" : "Enable"} ${layer.label}`}
-          >
-            <div className="toggle-thumb" />
-          </button>
-        </div>
-      ))}
- 
-      <div className="layer-section-label" style={{ marginTop: 8 }}>Other Layers</div>
-      {otherLayers.map((layer) => (
-        <div
-          key={layer.id}
-          className={`layer-item${layer.enabled ? " active" : ""}`}
-          onClick={() => toggle(layer.id)}
-        >
-          <span className="layer-icon">{layer.icon}</span>
-          <div className="layer-text">
-            <div className="layer-label-row">
-              <span className="layer-name">{layer.label}</span>
-              {layer.badge && (
-                <span
-                  className="badge"
-                  style={{ background: layer.badgeColor }}
-                >
-                  {layer.badge}
-                </span>
-              )}
-            </div>
-            <div className="layer-desc">{layer.desc}</div>
-          </div>
-          <button
-            className={`toggle${layer.enabled ? " on" : ""}`}
-            onClick={(e) => { e.stopPropagation(); toggle(layer.id); }}
-            aria-label={`${layer.enabled ? "Disable" : "Enable"} ${layer.label}`}
-          >
-            <div className="toggle-thumb" />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
+    );
+  }
+   
  
 // ─────────────────────────────────────────────
 //  Main export
