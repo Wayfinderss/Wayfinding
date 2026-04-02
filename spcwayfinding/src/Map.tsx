@@ -2,16 +2,18 @@
 //run npm install react react-dom leaflet react-leaflet
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { geocodeAddress, getDirections, reverseGeocode } from './services/api';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
-import Sidebar from './Sidebar';
+import Sidebar from './Left-Sidebar';
+import RightSidebar from './Right-Sidebar';
 import Controlpanel from './Controlpanel';
+import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
 
-// Placeholder step data (TODO: replace with real routing API results)
+// Placeholder step data
 const PLACEHOLDER_STEPS = [
   { instruction: 'Head north on Forbes Ave toward Craig St', detail: '0.2 mi · 1 min' },
   { instruction: 'Turn right onto Craig St', detail: '0.1 mi · 1 min' },
@@ -21,11 +23,61 @@ const PLACEHOLDER_STEPS = [
   { instruction: 'Arrive at your destination on the right', detail: '—' },
 ];
 
+function InvalidateSize({ trigger }: { trigger: any }) {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 300);
+  }, [trigger]);
+  return null;
+}
+
 interface Location {
   lat: number;
   lon: number;
-  label?: string;
 }
+
+interface ValhallaLocation {
+  type?: 'break';
+  lat: number;
+  lon: number;
+  original_index?: number;
+}
+
+interface ValhallaManeuver {
+  type: number;
+  instruction: string;
+  time?: number;
+  length?: number;
+}
+
+interface ValhallaLeg {
+  shape: string;
+  maneuvers: ValhallaManeuver[];
+  summary?: {
+    length?: number;
+    time?: number;
+  };
+  elevation?: number[];
+  elevation_interval?: number;
+}
+
+interface ValhallaTrip {
+  locations?: ValhallaLocation[];
+  legs: ValhallaLeg[];
+}
+
+interface ValhallaSuccessResponse {
+  status: 'ok';
+  trip: ValhallaTrip;
+}
+
+interface ValhallaErrorResponse {
+  status: 'no_route';
+  error_code: number;
+  error_message: string;
+}
+
+type ValhallaRouteResponse = ValhallaSuccessResponse | ValhallaErrorResponse;
 
 export default function Map() {
   const [startPoint, setStartPoint] = useState<Location | null>(null);
@@ -33,11 +85,15 @@ export default function Map() {
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fullRouteData, setFullRouteData] = useState<any | null>(null);
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
   const [searched, setSearched] = useState(false);
+
+  const [activeBasemap, setTileKey] = useState(0);
+  const [showElevation, setShowElevation] = useState(false);
 
   const handleSearch = async () => {
   if (!from.trim() || !to.trim()) return;
@@ -67,7 +123,6 @@ export default function Map() {
   }
 };
 
-  // Automatically fetch route when both points are set
   useEffect(() => {
     if (startPoint && endPoint) {
       fetchRoute(startPoint, endPoint);
@@ -99,13 +154,11 @@ export default function Map() {
       console.log('reverse geocode result:', result);
       console.log('label being used:', label);
     } else if (!endPoint) {
-      // Second click sets end point
       setEndPoint({ lat, lon });
       setTo(label);
       console.log('reverse geocode result:', result);
       console.log('label being used:', label);
     } else {
-      // Third click resets and starts over
       setStartPoint({ lat, lon });
       setFrom(label);
       setEndPoint(null);
@@ -123,50 +176,79 @@ export default function Map() {
     }
   };
 
-    const fetchRoute = async (start: Location, end: Location) => {
-  setIsLoading(true);
-  setErrorMessage(null);
+  const fetchRoute = async (start: Location, end: Location) => {
+    setIsLoading(true);
+    setErrorMessage(null);
 
-  try {
-    const data = await getDirections({
-      origin_lat: start.lat,
-      origin_lon: start.lon,
-      destination_lat: end.lat,
-      destination_lon: end.lon,
-      costing: 'pedestrian',
-    });
-    console.log('Full routing response:', JSON.stringify(data, null, 2));
+    try {
+      const response = await fetch('/valhalla/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locations: [
+            { lat: start.lat, lon: start.lon },
+            { lat: end.lat, lon: end.lon }
+          ],
+          costing: 'pedestrian',
+          directions_options: { units: 'miles' },
+          elevation_interval: 10,
+          user_id: null
+        })
+      });
 
-    if (data.error_code) {
-      if (data.error_code === 442) {
-        setErrorMessage('No route found - these locations are not connected by sidewalks');
-      } else if (data.error_code === 171) {
-        setErrorMessage('No sidewalks found near one or both locations');
-      } else {
-        setErrorMessage(`Routing error: ${data.error}`);
+      const rawText = await response.text();
+
+      let data: ValhallaRouteResponse;
+
+      try {
+        data = JSON.parse(rawText) as ValhallaRouteResponse;
+      } catch {
+        setErrorMessage('Routing service returned invalid JSON');
+        setRoutePolyline(null);
+        return;
       }
-      setRoutePolyline(null);
-      return;
+
+      setFullRouteData(data);
+
+      if (!response.ok || data.status !== 'ok') {
+        setErrorMessage('Routing error');
+        setRoutePolyline(null);
+        return;
+      }
+
+      const encodedShape = data.trip?.legs?.[0]?.shape;
+
+      if (!encodedShape) {
+        setErrorMessage('Invalid response from routing engine');
+        return;
+      }
+
+      setRoutePolyline(encodedShape);
+
+      const maneuvers = data.trip?.legs?.[0]?.maneuvers ?? [];
+
+      const parsedSteps = maneuvers.map((m) => {
+        const distance = m.length ? m.length.toFixed(2) : '0';
+        const minutes = m.time ? Math.round(m.time / 60) : 0;
+
+        return {
+          instruction: m.instruction,
+          detail: m.length && m.length > 0
+            ? `${distance} mi · ${minutes} min`
+            : '—'
+        };
+      });
+
+      setSteps(parsedSteps);
+      setSearched(true);
+
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Failed to connect to routing service');
+    } finally {
+      setIsLoading(false);
     }
-
-    const encodedShape = data.summary?.legs?.[0]?.shape;  // ← correct path
-
-    if (!encodedShape) {
-      setErrorMessage('Invalid response from routing engine');
-      return;
-    }
-
-    setRoutePolyline(encodedShape);
-    setSearched(true);
-
-  } catch (err) {
-    console.error('routing error', err);
-    setErrorMessage('Failed to get directions');
-    setRoutePolyline(null);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const clearRoute = () => {
     setStartPoint(null);
@@ -177,6 +259,7 @@ export default function Map() {
     setSearched(false);
     setFrom('');
     setTo('');
+    setFullRouteData(null);
   };
 
   const sharedProps = { 
@@ -190,8 +273,6 @@ export default function Map() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-
-      {/* Sidebar — sits on the left */}
       <Sidebar
         {...sharedProps}
         from={from}
@@ -203,7 +284,6 @@ export default function Map() {
         searched={searched}
       />
 
-      {/* Right side — control panel on top, map below */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Controlpanel {...sharedProps} />
 
@@ -213,17 +293,21 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
+          <InvalidateSize trigger={[showElevation, routePolyline]} />
+
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            key={activeBasemap}
+            attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
+
+        <ElevationProfile routeData={fullRouteData} />
       </div>
-
     </div>
-
   );
 }
