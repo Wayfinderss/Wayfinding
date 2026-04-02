@@ -2,11 +2,12 @@
 //run npm install react react-dom leaflet react-leaflet
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
-import Sidebar from './Sidebar';
+import Sidebar from './Left-Sidebar';
+import RightSidebar from './Right-Sidebar';
 import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
@@ -99,6 +100,9 @@ export default function Map() {
   const [to, setTo] = useState('');
   const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
   const [searched, setSearched] = useState(false);
+
+  const [activeBasemap, setTileKey] = useState(0); //forces a reset when basemap icon is clicked 
+  const [showElevation, setShowElevation] = useState(false); //for elevation toggle 
 
   const handleSearch = () => {
     if (!from.trim() || !to.trim()) return;
@@ -236,7 +240,9 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
+          <InvalidateSize trigger={[showElevation, routePolyline]} /> {/* fixes delay in map reload */}
           <TileLayer
+            key={activeBasemap}
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
