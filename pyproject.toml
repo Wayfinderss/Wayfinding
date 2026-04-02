@@ -8,4 +8,7 @@ dependencies = [
     "fastapi>=0.128.1",
     "pyvalhalla>=3.6.2",
     "uvicorn>=0.40.0",
+    "psycopg2-binary>=2.9.11",
+    "requests>=2.33.1",
+    "ijson>=3.5.0",
 ]

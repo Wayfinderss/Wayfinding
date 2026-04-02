@@ -86,6 +86,7 @@ class ValhallaTileBuilder:
         config_path: Path,
         osm_paths: list[Path],
         force: bool = False,
+        remove_merge: bool = False
     ) -> None:
         """
         Build Valhalla tiles from many PBFs.
@@ -127,9 +128,10 @@ class ValhallaTileBuilder:
                 raise RuntimeError("Tile build completed but no tiles were produced")
 
             print(f"✓ Tiles built successfully from {len(osm_paths)} chunks")
-
         finally:
-            shutil.rmtree(merge_dir, ignore_errors=True)
+            if remove_merge:
+                shutil.rmtree(merge_dir)
+
 
     # ------------------------------------------------------------------
     # Merge helpers

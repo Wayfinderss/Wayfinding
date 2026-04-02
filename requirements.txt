@@ -8,15 +8,11 @@ anyio==4.12.1
     # via starlette
 certifi==2026.2.25
     # via requests
-charset-normalizer==3.4.4
+charset-normalizer==3.4.6
     # via requests
 click==8.3.1
-    # via
-    #   geobuf
-    #   uvicorn
+    # via uvicorn
 fastapi==0.135.1
-    # via wayfinding (pyproject.toml)
-geobuf==2.0.1
     # via wayfinding (pyproject.toml)
 h11==0.16.0
     # via uvicorn
@@ -26,22 +22,16 @@ idna==3.11
     #   requests
 ijson==3.5.0
     # via wayfinding (pyproject.toml)
-osmium==4.3.0
-    # via wayfinding (pyproject.toml)
-protobuf==7.34.0
-    # via geobuf
 psycopg2-binary==2.9.11
     # via wayfinding (pyproject.toml)
 pydantic==2.12.5
     # via fastapi
 pydantic-core==2.41.5
     # via pydantic
-requests==2.32.5
-    # via
-    #   wayfinding (pyproject.toml)
-    #   osmium
-six==1.17.0
-    # via geobuf
+pyvalhalla==3.6.3
+    # via wayfinding (pyproject.toml)
+requests==2.33.1
+    # via wayfinding (pyproject.toml)
 starlette==0.52.1
     # via fastapi
 typing-extensions==4.15.0

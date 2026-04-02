@@ -77,7 +77,7 @@ class TileBuildPipeline:
                 print(f"  [{geohash}] converted → {pbf_path}")
 
         print(f"Building tiles from {len(pbf_paths)} chunks")
-        self._tile_builder.build_many(config_path=VALHALLA_CONFIG_PATH, osm_paths=pbf_paths)
+        self._tile_builder.build_many(config_path=VALHALLA_CONFIG_PATH, osm_paths=pbf_paths, remove_merge=False)
 
         return {
             "status": "success",
@@ -85,7 +85,6 @@ class TileBuildPipeline:
         }
 
     def _write_chunk(self, geohash: str, features: list) -> Path:
-
         prefix = geohash[:5]
 
         geojson_dir = CHUNK_GEOJSON_DIR / prefix
@@ -106,20 +105,17 @@ class TileBuildPipeline:
         )
 
         print(f"  [{geohash}] Step 1: GeoJSON → OSM")
-
-        GeoJSONToOSMService.convert(
-            geojson_path=geojson_path,
-            osm_path=osm_path
-        )
+        GeoJSONToOSMService.convert(geojson_path=geojson_path, osm_path=osm_path)
 
         print(f"  [{geohash}] Step 2: OSM → PBF")
-
         subprocess.run(
             ["osmium", "sort", str(osm_path), "-o", str(pbf_path), "--overwrite"],
             check=True,
         )
 
-        osm_path.unlink(missing_ok=True)
+        KEEP_INTERMEDIATE_OSM = True
+        if not KEEP_INTERMEDIATE_OSM:
+            osm_path.unlink(missing_ok=True)
 
         return pbf_path
 

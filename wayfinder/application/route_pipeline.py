@@ -18,6 +18,8 @@ class RoutePipeline:
         origin_lng: float,
         dest_lat: float,
         dest_lng: float,
+        costing: str = "pedestrian",
+        options: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
 
         return self._route_service.request_route(
@@ -25,4 +27,6 @@ class RoutePipeline:
             origin_lng=origin_lng,
             dest_lat=dest_lat,
             dest_lng=dest_lng,
+            costing=costing,
+            options=options,
         )

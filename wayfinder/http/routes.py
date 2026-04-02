@@ -79,12 +79,21 @@ def startup() -> None:
     _initialize_route_controller()
 
 
+class ValhallaLocation(BaseModel):
+    lat: float
+    lon: float
+
+
+class DirectionsOptions(BaseModel):
+    units: Optional[str] = None
+
+
 class RouteRequest(BaseModel):
-    origin_lat: float
-    origin_lon: float
-    dest_lat: float
-    dest_lon: float
+    locations: list[ValhallaLocation]
     costing: str = "pedestrian"
+    directions_options: Optional[DirectionsOptions] = None
+    shape_format: Optional[str] = None
+    elevation_interval: Optional[int] = None
     user_id: Optional[str] = None
 
 
@@ -95,10 +104,23 @@ def route(request: RouteRequest):
     """
     controller = _get_route_controller()
 
+    origin = request.locations[0]
+    destination = request.locations[1]
+
+    options: dict[str, object] = {}
+    if request.directions_options is not None:
+        options["directions_options"] = request.directions_options.model_dump(exclude_none=True)
+    if request.shape_format is not None:
+        options["shape_format"] = request.shape_format
+    if request.elevation_interval is not None:
+        options["elevation_interval"] = request.elevation_interval
+
     return controller.get_route(
-        origin_lat=request.origin_lat,
-        origin_lng=request.origin_lon,
-        dest_lat=request.dest_lat,
-        dest_lng=request.dest_lon,
+        origin_lat=origin.lat,
+        origin_lng=origin.lon,
+        dest_lat=destination.lat,
+        dest_lng=destination.lon,
+        costing=request.costing,
+        options=options or None,
         user_id=request.user_id,
     )

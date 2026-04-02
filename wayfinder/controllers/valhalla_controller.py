@@ -38,6 +38,8 @@ class RouteController:
         origin_lng: float,
         dest_lat: float,
         dest_lng: float,
+        costing: str = "pedestrian",
+        options: Dict[str, Any] | None = None,
         user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         result = self.pipeline.execute(
@@ -45,6 +47,8 @@ class RouteController:
             origin_lng=origin_lng,
             dest_lat=dest_lat,
             dest_lng=dest_lng,
+            costing=costing,
+            options=options,
         )
 
         if result.get("success"):

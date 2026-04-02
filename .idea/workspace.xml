@@ -5,10 +5,32 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f6d5aa57-8295-473a-966b-f694c8be52ee" name="Changes" comment="Merge branch 'main' of https://github.com/Wayfinderss/Wayfinding into WAY-23-Underlying-CRUD-View-API-Development-Start-with-addition-of-streets&#10;&#10;# Conflicts:&#10;#&#9;.gitignore&#10;#&#9;.idea/Wayfinding.iml&#10;#&#9;.idea/workspace.xml&#10;#&#9;app/services/valhalla_test.py&#10;#&#9;data/valhalla/valhalla.json&#10;#&#9;pyproject.toml&#10;#&#9;spcwayfinding/.gitignore&#10;#&#9;spcwayfinding/README.md&#10;#&#9;spcwayfinding/node_modules/.bin/tsc&#10;#&#9;spcwayfinding/node_modules/.bin/tsserver&#10;#&#9;spcwayfinding/node_modules/typescript/LICENSE.txt&#10;#&#9;spcwayfinding/node_modules/typescript/README.md&#10;#&#9;spcwayfinding/node_modules/typescript/SECURITY.md&#10;#&#9;spcwayfinding/node_modules/typescript/ThirdPartyNoticeText.txt&#10;#&#9;spcwayfinding/node_modules/typescript/bin/tsc&#10;#&#9;spcwayfinding/node_modules/typescript/bin/tsserver&#10;#&#9;spcwayfinding/node_modules/typescript/lib/_tsc.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/_tsserver.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/_typingsInstaller.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/cs/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/de/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/es/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/fr/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/it/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/ja/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/ko/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.decorators.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.decorators.legacy.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.dom.asynciterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.dom.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.dom.iterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.collection.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.core.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.generator.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.iterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.proxy.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.reflect.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.symbol.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2016.array.include.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2016.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2016.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2016.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.arraybuffer.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.date.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.object.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2017.typedarrays.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.asynciterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2018.regexp.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.array.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.object.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2019.symbol.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.bigint.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.date.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.number.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2021.weakref.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.array.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.error.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.object.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.regexp.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2022.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2023.array.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2023.collection.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2023.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2023.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2023.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.arraybuffer.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.collection.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.object.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.regexp.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.sharedmemory.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es2024.string.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es5.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.es6.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.array.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.collection.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.decorators.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.disposable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.error.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.float16.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.full.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.intl.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.iterator.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.promise.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.esnext.sharedmemory.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.scripthost.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.webworker.asynciterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.webworker.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.webworker.importscripts.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/lib.webworker.iterable.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/pl/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/pt-br/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/ru/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/tr/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/tsc.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/tsserver.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/tsserverlibrary.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/tsserverlibrary.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/typesMap.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/typescript.d.ts&#10;#&#9;spcwayfinding/node_modules/typescript/lib/typescript.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/typingsInstaller.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/watchGuard.js&#10;#&#9;spcwayfinding/node_modules/typescript/lib/zh-cn/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/lib/zh-tw/diagnosticMessages.generated.json&#10;#&#9;spcwayfinding/node_modules/typescript/package.json&#10;#&#9;spcwayfinding/package.json&#10;#&#9;spcwayfinding/tsconfig.json&#10;#&#9;uv.lock">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Wayfinding.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Wayfinding.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/valhalla/valhalla.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/valhalla/valhalla.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/engines/valhalla_engine/config_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/engines/valhalla_engine/config_builder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/engines/valhalla_engine/tile_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/engines/valhalla_engine/tile_builder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/_metadata.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react-dom.js" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react-dom.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react-dom_client.js" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react-dom_client.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react.js" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react_jsx-dev-runtime.js" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react_jsx-dev-runtime.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react_jsx-runtime.js" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/node_modules/.vite/deps/react_jsx-runtime.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/src/ElevationProfile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/src/ElevationProfile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/src/Map.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/src/Map.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spcwayfinding/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/spcwayfinding/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uv.lock" beforeDir="false" afterPath="$PROJECT_DIR$/uv.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wayfinder/application/route_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/application/route_pipeline.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/wayfinder/application/tile_build_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/application/tile_build_pipeline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/wayfinder/config/paths.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/config/paths.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wayfinder/controllers/valhalla_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/controllers/valhalla_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wayfinder/domain/geojson_to_osm_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/domain/geojson_to_osm_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wayfinder/domain/routing_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/domain/routing_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wayfinder/http/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/wayfinder/http/routes.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,7 +38,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="95" />
+    <option name="cachedIndexableFilesCount" value="100" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -41,37 +63,52 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.build_valhalla_tiles.executor&quot;: &quot;Run&quot;,
-    &quot;Python.config_file.executor&quot;: &quot;Run&quot;,
-    &quot;Python.config_generator.executor&quot;: &quot;Run&quot;,
-    &quot;Python.config_normalizer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.generate_valhalla_json.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.paths.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test_valhalla.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;WAY-23-Underlying-CRUD-View-API-Development-Start-with-addition-of-streets&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/kunalsaxena/Documents/College/Wayfinding&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/Users/kunalsaxena/Documents/College/Wayfinding/spcwayfinding/node_modules/typescript/lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.build_valhalla_tiles.executor": "Run",
+    "Python.config_file.executor": "Run",
+    "Python.config_generator.executor": "Run",
+    "Python.config_normalizer.executor": "Run",
+    "Python.generate_valhalla_json.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.paths.executor": "Run",
+    "Python.test_valhalla.executor": "Run",
+    "Python.tile_builder.executor": "Debug",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "WAY-23-Underlying-CRUD-View-API-Development-Start-with-addition-of-streets",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/kunalsaxena/Documents/College/Wayfinding",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "/Users/kunalsaxena/Documents/College/Wayfinding/spcwayfinding/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings sdk-home="$PROJECT_DIR$/.venv/bin/python">
+        <option name="sdk">
+          <Sdk />
+        </option>
+        <option name="mySdkHome" value="$PROJECT_DIR$/.venv/bin/python" />
+        <option name="mySdk">
+          <Sdk />
+        </option>
+      </console-settings>
+    </option>
+  </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/app/data/custom_files" />
@@ -83,30 +120,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.config_normalizer">
-    <configuration name="build_valhalla_tiles" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Wayfinding" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/build_valhalla_tiles.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="config_normalizer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Wayfinding" />
       <option name="ENV_FILES" value="" />
@@ -116,8 +129,9 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="uv (Wayfinding)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app/services" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
@@ -140,8 +154,9 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="uv (Wayfinding)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
@@ -164,8 +179,9 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="uv (Wayfinding)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app/core" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
@@ -188,8 +204,9 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="uv (Wayfinding)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
@@ -203,13 +220,45 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="tile_builder" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Wayfinding" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="uv (Wayfinding)" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/engines/valhalla_engine" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/engines/valhalla_engine/tile_builder.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.config_normalizer" />
+      <item itemvalue="Python.main" />
+      <item itemvalue="Python.paths" />
+      <item itemvalue="Python.test_valhalla" />
+      <item itemvalue="Python.tile_builder" />
+    </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.tile_builder" />
         <item itemvalue="Python.config_normalizer" />
         <item itemvalue="Python.paths" />
         <item itemvalue="Python.main" />
         <item itemvalue="Python.test_valhalla" />
-        <item itemvalue="Python.build_valhalla_tiles" />
       </list>
     </recent_temporary>
   </component>
@@ -233,11 +282,24 @@
       <workItem from="1770909580683" duration="2792000" />
       <workItem from="1773964621784" duration="4000" />
       <workItem from="1774316745515" duration="40994000" />
+      <workItem from="1775105618541" duration="1318000" />
+      <workItem from="1775108590550" duration="48000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/spcwayfinding/src/ElevationProfile.tsx</url>
+          <line>2</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Wayfinding$bootstrap_tiles.coverage" NAME="bootstrap_tiles Coverage Results" MODIFIED="1773118287686" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
@@ -245,6 +307,7 @@
     <SUITE FILE_PATH="coverage/Wayfinding$main.coverage" NAME="main Coverage Results" MODIFIED="1770310512591" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app" />
     <SUITE FILE_PATH="coverage/Wayfinding$build_valhalla_tiles.coverage" NAME="build_valhalla_tiles Coverage Results" MODIFIED="1770303179608" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Wayfinding$config_file.coverage" NAME="config_file Coverage Results" MODIFIED="1770276116859" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Wayfinding$tile_builder.coverage" NAME="tile_builder Coverage Results" MODIFIED="1775102935295" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/engines/valhalla_engine" />
     <SUITE FILE_PATH="coverage/Wayfinding$config_generator.coverage" NAME="config_normalizer Coverage Results" MODIFIED="1770353528070" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/app/services" />
     <SUITE FILE_PATH="coverage/Wayfinding$generate_valhalla_json.coverage" NAME="generate_valhalla_json Coverage Results" MODIFIED="1770276129295" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Wayfinding$test_valhalla.coverage" NAME="test_valhalla Coverage Results" MODIFIED="1770303230015" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

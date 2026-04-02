@@ -83,8 +83,23 @@ class ValhallaRouteService:
             ],
             "costing": costing,
         }
+
         if options:
-            payload["costing_options"] = {costing: options}
+            if "directions_options" in options:
+                payload["directions_options"] = options["directions_options"]
+            if "shape_format" in options:
+                payload["shape_format"] = options["shape_format"]
+            if "elevation_interval" in options:
+                payload["elevation_interval"] = options["elevation_interval"]
+
+            costing_options = {
+                key: value
+                for key, value in options.items()
+                if key not in {"directions_options", "shape_format", "elevation_interval"}
+            }
+            if costing_options:
+                payload["costing_options"] = {costing: costing_options}
+
         return payload
 
     def _extract_trip(self, adapter_result: Dict[str, Any]) -> Dict[str, Any]:
