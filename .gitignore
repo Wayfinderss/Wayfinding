@@ -22,7 +22,6 @@ wheels/
 *.egg
 
 # Virtual Environment
-.venv/
 venv/
 ENV/
 env/
@@ -37,14 +36,19 @@ env/
 .DS_Store
 
 # Valhalla / OSM / tiles
-app/data/custom_files/
+wayfinder/data/custom_files/
 tiles/
 *.osm.pbf
 *.tar
 Thumbs.db
 
 # Application data
-app/data/config.json
+wayfinder/data/config.json
 app/data/custom_files/*.osm.pbf
-app/data/valhalla_tiles/
+wayfinder/data/valhalla_tiles/
 duplicateways.txt
+data/valhalla/tiles/*
+data/valhalla/*.osm
+data/valhalla/*.geojson
+data/valhalla/chunks
+data/valhalla

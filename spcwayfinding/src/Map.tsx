@@ -12,7 +12,7 @@ import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
 
-// Placeholder step data (TODO: replace with real routing API results)
+// Placeholder step data
 const PLACEHOLDER_STEPS = [
   { instruction: 'Head north on Forbes Ave toward Craig St', detail: '0.2 mi · 1 min' },
   { instruction: 'Turn right onto Craig St', detail: '0.1 mi · 1 min' },
@@ -22,11 +22,6 @@ const PLACEHOLDER_STEPS = [
   { instruction: 'Arrive at your destination on the right', detail: '—' },
 ];
 
-interface Location {
-  lat: number;
-  lon: number;
-}
-
 function InvalidateSize({ trigger }: { trigger: any }) {
   const map = useMap();
   useEffect(() => {
@@ -35,30 +30,76 @@ function InvalidateSize({ trigger }: { trigger: any }) {
   return null;
 }
 
+interface Location {
+  lat: number;
+  lon: number;
+}
+
+interface ValhallaLocation {
+  type?: 'break';
+  lat: number;
+  lon: number;
+  original_index?: number;
+}
+
+interface ValhallaManeuver {
+  type: number;
+  instruction: string;
+  time?: number;
+  length?: number;
+}
+
+interface ValhallaLeg {
+  shape: string;
+  maneuvers: ValhallaManeuver[];
+  summary?: {
+    length?: number;
+    time?: number;
+  };
+  elevation?: number[];
+  elevation_interval?: number;
+}
+
+interface ValhallaTrip {
+  locations?: ValhallaLocation[];
+  legs: ValhallaLeg[];
+}
+
+interface ValhallaSuccessResponse {
+  status: 'ok';
+  trip: ValhallaTrip;
+}
+
+interface ValhallaErrorResponse {
+  status: 'no_route';
+  error_code: number;
+  error_message: string;
+}
+
+type ValhallaRouteResponse = ValhallaSuccessResponse | ValhallaErrorResponse;
+
 export default function Map() {
   const [startPoint, setStartPoint] = useState<Location | null>(null);
   const [endPoint, setEndPoint] = useState<Location | null>(null);
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [fullRouteData, setFullRouteData] = useState<any | null>(null); // NEW: Store full Valhalla response
+  const [fullRouteData, setFullRouteData] = useState<any | null>(null);
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
   const [searched, setSearched] = useState(false);
 
-  const [activeBasemap, setTileKey] = useState(0); //forces a reset when basemap icon is clicked 
-  const [showElevation, setShowElevation] = useState(false); //for elevation toggle 
+  const [activeBasemap, setTileKey] = useState(0);
+  const [showElevation, setShowElevation] = useState(false);
 
   const handleSearch = () => {
     if (!from.trim() || !to.trim()) return;
-    // TODO: geocode from/to strings and call fetchRoute with real coordinates
     setSteps(PLACEHOLDER_STEPS);
     setSearched(true);
   };
 
-  // Automatically fetch route when both points are set
   useEffect(() => {
     if (startPoint && endPoint) {
       fetchRoute(startPoint, endPoint);
@@ -67,16 +108,13 @@ export default function Map() {
 
   const handleLocationSelect = (lat: number, lon: number) => {
     if (!startPoint) {
-      // First click sets start point
       setStartPoint({ lat, lon });
       setEndPoint(null);
       setRoutePolyline(null);
       setErrorMessage(null);
     } else if (!endPoint) {
-      // Second click sets end point
       setEndPoint({ lat, lon });
     } else {
-      // Third click resets and starts over
       setStartPoint({ lat, lon });
       setEndPoint(null);
       setRoutePolyline(null);
@@ -87,9 +125,9 @@ export default function Map() {
   const fetchRoute = async (start: Location, end: Location) => {
     setIsLoading(true);
     setErrorMessage(null);
-    
+
     try {
-      const response = await fetch('/api/route', {
+      const response = await fetch('/valhalla/route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,44 +137,59 @@ export default function Map() {
           ],
           costing: 'pedestrian',
           directions_options: { units: 'miles' },
-          shape_format: 'geojson',  // Request GeoJSON format with elevation
-          elevation_interval: 10     // Elevation point every 10 meters
+          elevation_interval: 10,
+          user_id: null
         })
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
 
-      // DEBUG: Log the full response to see what we got
-      console.log('Full Valhalla response:', data);
-      console.log('Shape type:', typeof data.trip?.legs?.[0]?.shape);
-      console.log('Shape value:', data.trip?.legs?.[0]?.shape);
+      let data: ValhallaRouteResponse;
 
-      // NEW: Store full response for elevation profile
-      setFullRouteData(data);
-      
-      if (data.error_code) {
-        if (data.error_code === 442) {
-          setErrorMessage('No route found - these locations are not connected by sidewalks');
-        } else if (data.error_code === 171) {
-          setErrorMessage('No sidewalks found near one or both locations');
-        } else {
-          setErrorMessage(`Routing error: ${data.error}`);
-        }
+      try {
+        data = JSON.parse(rawText) as ValhallaRouteResponse;
+      } catch {
+        setErrorMessage('Routing service returned invalid JSON');
         setRoutePolyline(null);
         return;
       }
-      
+
+      setFullRouteData(data);
+
+      if (!response.ok || data.status !== 'ok') {
+        setErrorMessage('Routing error');
+        setRoutePolyline(null);
+        return;
+      }
+
       const encodedShape = data.trip?.legs?.[0]?.shape;
-      
+
       if (!encodedShape) {
         setErrorMessage('Invalid response from routing engine');
         return;
       }
-      
+
       setRoutePolyline(encodedShape);
-      
+
+      const maneuvers = data.trip?.legs?.[0]?.maneuvers ?? [];
+
+      const parsedSteps = maneuvers.map((m) => {
+        const distance = m.length ? m.length.toFixed(2) : '0';
+        const minutes = m.time ? Math.round(m.time / 60) : 0;
+
+        return {
+          instruction: m.instruction,
+          detail: m.length && m.length > 0
+            ? `${distance} mi · ${minutes} min`
+            : '—'
+        };
+      });
+
+      setSteps(parsedSteps);
+      setSearched(true);
+
     } catch (error) {
-      console.error('Error fetching route:', error);
+      console.error(error);
       setErrorMessage('Failed to connect to routing service');
     } finally {
       setIsLoading(false);
@@ -152,15 +205,13 @@ export default function Map() {
     setSearched(false);
     setFrom('');
     setTo('');
-    setFullRouteData(null); // NEW: Clear elevation data
+    setFullRouteData(null);
   };
 
   const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-
-      {/* Sidebar — sits on the left */}
       <Sidebar
         {...sharedProps}
         from={from}
@@ -172,7 +223,6 @@ export default function Map() {
         searched={searched}
       />
 
-      {/* Right side — control panel on top, map in middle, elevation profile at bottom */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Controlpanel {...sharedProps} />
 
@@ -182,31 +232,21 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
-          <InvalidateSize trigger={[showElevation, routePolyline]} /> {/* fixes delay in map reload */}
+          <InvalidateSize trigger={[showElevation, routePolyline]} />
+
           <TileLayer
             key={activeBasemap}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
 
-        {/* NEW: Elevation Profile */}
-        {/* <ElevationProfile routeData={fullRouteData} /> */}
-        {showElevation && <ElevationProfile routeData={fullRouteData} />}
+        <ElevationProfile routeData={fullRouteData} />
       </div>
-
-      {/* Right side bar three icons (outside map column) */}
-      <RightSidebar 
-        onResetBasemap={() => setTileKey(k => k + 1)}
-        showElevation={showElevation}
-        onToggleElevation={setShowElevation}
-      />
-
-     
-     </div>
-
+    </div>
   );
 }

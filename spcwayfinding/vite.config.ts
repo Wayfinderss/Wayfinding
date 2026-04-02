@@ -5,11 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
-        // target: 'http://localhost:8002',
-        target: 'https://valhalla1.openstreetmap.de',
+      '/valhalla': {
+        target: 'http://api:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }

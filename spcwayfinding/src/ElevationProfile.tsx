@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import polyline from '@mapbox/polyline';
+//import polyline from '@mapbox/polyline';
 
 interface ElevationPoint {
   distance: number;      // Distance from start in miles
@@ -31,7 +31,7 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
         console.log('Found elevation array with', leg.elevation.length, 'points');
         
         // Decode the polyline to get coordinates
-        const coordinates = polyline.decode(leg.shape, 6);
+        //const coordinates = polyline.decode(leg.shape, 6);
         const elevationArray = leg.elevation; // Array of elevation values in meters
         
         // Valhalla's elevation_interval tells us the sampling rate

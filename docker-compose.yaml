@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      valhalla:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  valhalla:
+    build:
+      context: .
+      dockerfile: Dockerfile.valhalla
+    working_dir: /app
+    entrypoint: ["/bin/bash", "/bootstrap_tiles.sh"]
+    environment:
+      PYTHONPATH: /app
+      REBUILD_TILES: ${REBUILD_TILES:-false}
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1',8002)); s.close()\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      VALHALLA_URL: http://valhalla:8002
+      DB_BACKEND: postgres
+      DB_CONNECTION_STRING: host=postgres port=5432 dbname=wayfinding_logger user=postgres password=secret
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valhalla:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/valhalla/health', timeout=2).read()\""
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+    command: ["/app/.venv/bin/uvicorn", "wayfinder.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./spcwayfinding:/app
+      - /app/node_modules
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  postgres_data:
