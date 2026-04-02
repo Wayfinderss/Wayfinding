@@ -21,6 +21,15 @@ from wayfinder.config.paths import (
 
 CONVERSION_WORKERS = 8  # parallel GeoJSON → OSM → PBF conversions
 
+# OSM tooling expects IDs to fit in signed 64-bit integers.
+# When we build multiple chunk PBFs and later merge them, we must avoid
+# node/way ID collisions across chunks, but we also must not generate
+# out-of-range IDs (which breaks `osmium sort`).
+# We achieve this by allocating deterministic, per-chunk ID ranges using
+# a fixed stride based on the chunk's index within the current build.
+NODE_ID_STRIDE = 1_000_000_000
+WAY_ID_STRIDE = 1_000_000_000
+
 
 class TileBuildPipeline:
     """
@@ -37,11 +46,24 @@ class TileBuildPipeline:
     def __init__(self):
         self._tile_builder = ValhallaTileBuilder(TILES_DIR)
 
+    @staticmethod
+    def _id_bases_from_index(chunk_index: int) -> tuple[int, int]:
+        """
+        Create deterministic, per-build base offsets for node/way IDs.
+
+        This avoids ID collisions when multiple chunk PBFs are merged, while
+        also keeping IDs within signed 64-bit range for OSM tooling.
+        """
+        node_id_base = chunk_index * NODE_ID_STRIDE
+        way_id_base = chunk_index * WAY_ID_STRIDE
+        return node_id_base, way_id_base
+
     def write_chunks(self, chunks: Dict[str, list]) -> None:
         """Write all chunks to CHUNKS_DIR without building tiles."""
         CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
-        for geohash, features in chunks.items():
-            self._write_chunk(geohash, features)
+        for chunk_index, geohash in enumerate(sorted(chunks.keys())):
+            features = chunks[geohash]
+            self._write_chunk(geohash, features, chunk_index=chunk_index)
             print(f"  [{geohash}] {len(features)} features written")
 
     def run(
@@ -53,7 +75,7 @@ class TileBuildPipeline:
     ) -> Dict[str, Any]:
 
         if chunks is not None:
-            return self._run_chunked(chunks)
+            return self._run_chunked(chunks, force=force)
 
         return self._run_single(geojson_path or CUSTOM_GEOJSON_PATH)
 
@@ -61,14 +83,21 @@ class TileBuildPipeline:
     # Internal
     # ------------------------------------------------------------------
 
-    def _run_chunked(self, chunks: Dict[str, list]) -> Dict[str, Any]:
+    def _run_chunked(self, chunks: Dict[str, list], *, force: bool) -> Dict[str, Any]:
         CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
         pbf_paths = []
 
+        geohashes = sorted(chunks.keys())
         with ThreadPoolExecutor(max_workers=CONVERSION_WORKERS) as ex:
             futures = {
-                ex.submit(self._write_chunk, geohash, features): geohash
-                for geohash, features in chunks.items()
+                ex.submit(
+                    self._write_chunk,
+                    geohash,
+                    chunks[geohash],
+                    chunk_index=chunk_index,
+                    force=force,
+                ): geohash
+                for chunk_index, geohash in enumerate(geohashes)
             }
             for future in as_completed(futures):
                 geohash = futures[future]
@@ -84,7 +113,7 @@ class TileBuildPipeline:
             "chunks_processed": len(pbf_paths),
         }
 
-    def _write_chunk(self, geohash: str, features: list) -> Path:
+    def _write_chunk(self, geohash: str, features: list, *, chunk_index: int = 0, force: bool = True) -> Path:
         prefix = geohash[:5]
 
         geojson_dir = CHUNK_GEOJSON_DIR / prefix
@@ -99,13 +128,24 @@ class TileBuildPipeline:
         osm_path = osm_dir / f"{geohash}.osm"
         pbf_path = pbf_dir / f"{geohash}.pbf"
 
+        # In incremental mode, avoid re-converting chunks that are already present.
+        if pbf_path.exists() and not force:
+            print(f"  [{geohash}] cached chunk → {pbf_path}")
+            return pbf_path
+
         geojson_path.write_text(
             json.dumps({"type": "FeatureCollection", "features": features}),
             encoding="utf-8",
         )
 
         print(f"  [{geohash}] Step 1: GeoJSON → OSM")
-        GeoJSONToOSMService.convert(geojson_path=geojson_path, osm_path=osm_path)
+        node_id_base, way_id_base = self._id_bases_from_index(chunk_index)
+        GeoJSONToOSMService.convert(
+            geojson_path=geojson_path,
+            osm_path=osm_path,
+            node_id_base=node_id_base,
+            way_id_base=way_id_base,
+        )
 
         print(f"  [{geohash}] Step 2: OSM → PBF")
         subprocess.run(

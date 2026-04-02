@@ -145,7 +145,6 @@ export default function Map() {
           ],
           costing: 'pedestrian',
           directions_options: { units: 'miles' },
-          shape_format: 'polyline',
           elevation_interval: 10,
           user_id: null
         })

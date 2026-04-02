@@ -85,12 +85,15 @@ class GeohasherSplittingPipeline:
         for i in range(len(features)):
             groups[find(i)].append(i)
 
+        print("features:", len(features))
+        print("components:", len(groups))
+
         return list(groups.values())
 
     @staticmethod
-    def _coord_key(coord: list) -> tuple:
-        """Round to ~1cm precision to treat near-identical endpoints as the same node."""
-        return (round(coord[0], 7), round(coord[1], 7))
+    def _coord_key(coord):
+        lon, lat = coord
+        return (round(lat, 5), round(lon, 5))
 
     @staticmethod
     def _centroid(coordinates: list) -> tuple[float, float]:

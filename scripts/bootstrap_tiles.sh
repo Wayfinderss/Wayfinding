@@ -5,7 +5,11 @@ echo "Bootstrapping Valhalla tiles..."
 
 cd /app
 
-python -u -m scripts.bootstrap_tiles
+if [ "${REBUILD_TILES:-false}" = "true" ]; then
+  python -u -m scripts.bootstrap_tiles --rebuild
+else
+  python -u -m scripts.bootstrap_tiles
+fi
 
 echo "Starting Valhalla service..."
 

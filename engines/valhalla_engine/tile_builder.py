@@ -129,7 +129,9 @@ class ValhallaTileBuilder:
 
             print(f"✓ Tiles built successfully from {len(osm_paths)} chunks")
         finally:
+            print("In cleanup")
             if remove_merge:
+                print("Cleaning up merge directory")
                 shutil.rmtree(merge_dir)
 
 

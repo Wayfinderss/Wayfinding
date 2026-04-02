@@ -9,6 +9,7 @@ from wayfinder.config.paths import (
     VALHALLA_DATA_DIR,
 )
 
+import argparse
 import shutil
 import json
 import time
@@ -166,33 +167,40 @@ def _clear_valhalla_data():
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Bootstrap Valhalla tiles")
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Force a full rebuild: wipe derived data and redownload/reconvert everything.",
+    )
+    args = parser.parse_args()
+
     print("==== Valhalla Tile Bootstrap ====")
 
     VALHALLA_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    _clear_valhalla_data()
 
     if not VALHALLA_CONFIG_PATH.exists():
         print("Generating Valhalla config")
         generate_config_file()
 
-    data = generate_json()
+    if tiles_exist() and not args.rebuild:
+        print("Tiles already exist, skipping bootstrap")
+        return
+
+    if args.rebuild:
+        _clear_valhalla_data()
+
+    data = generate_json(force=args.rebuild)
 
     statuses = {f.get("properties", {}).get("Status") for f in data["features"]}
     print(f"Status values in dataset: {statuses}")
 
-    chunks = GeohasherSplittingPipeline(precision=128, skip_closed=False).run(data)
+    chunks = GeohasherSplittingPipeline(precision=16, skip_closed=False).run(data)
     total_features = sum(len(v) for v in chunks.values())
     print(f"Splitter: {len(chunks)} buckets, {total_features} features")
 
     pipeline = TileBuildPipeline()
-    pipeline.write_chunks(chunks)
-    print(f"Chunks written: {len(chunks)} buckets → {CHUNKS_DIR}")
-
-    if tiles_exist():
-        print("Tiles already exist, skipping build")
-        return
-
-    result = pipeline.run(chunks=chunks)
+    result = pipeline.run(chunks=chunks, force=args.rebuild)
     print("Tiles built")
     print(result)
 

@@ -112,13 +112,24 @@ class GeoJSONToOSMService:
         return tags
 
     @classmethod
-    def convert(cls, *, geojson_path: Path, osm_path: Path, normalize: bool = True):
+    def convert(
+        cls,
+        *,
+        geojson_path: Path,
+        osm_path: Path,
+        normalize: bool = True,
+        node_id_base: int = 0,
+        way_id_base: int = 0,
+    ):
 
         node_cache = {}
         ways = []
 
-        node_id = 1
-        way_id = 1
+        # When chunk-building tiles, multiple converted PBFs are merged together.
+        # If node/way IDs overlap across chunks, `osmium merge --overwrite` can drop
+        # earlier objects. Offsetting IDs per chunk keeps merges deterministic.
+        node_id = node_id_base + 1
+        way_id = way_id_base + 1
 
         with open(geojson_path, "rb") as f:
 
@@ -137,9 +148,12 @@ class GeoJSONToOSMService:
                 if len(coords) < 2:
                     continue
 
-                # status filter
-                if props.get("Status") and props.get("Status") != "Open":
-                    continue
+                # status filter (case-insensitive; preserves prior behavior of only
+                # filtering when the field is present and non-empty)
+                status = props.get("Status")
+                if status:
+                    if str(status).strip().lower() != "open":
+                        continue
 
                 length = cls._safe_float(props.get("Feet")) * 0.3048
 
