@@ -149,7 +149,13 @@ class TileBuildPipeline:
 
         print(f"  [{geohash}] Step 2: OSM → PBF")
         subprocess.run(
-            ["osmium", "sort", str(osm_path), "-o", str(pbf_path), "--overwrite"],
+            [
+                "osmium", "sort",
+                str(osm_path),
+                "-o", str(pbf_path),
+                "--output-format", "pbf",
+                "--overwrite",
+            ],
             check=True,
         )
 
