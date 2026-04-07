@@ -25,16 +25,10 @@ class ValhallaConfigBuilder:
         config["mjolnir"].pop("tile_extract", None)
         config["mjolnir"].pop("traffic_extract", None)
 
-        # Point Valhalla at the elevation directory.
-        # If the directory is empty or absent, Valhalla uses OSM `ele`
-        # tags on nodes as a fallback — which is exactly what our
-        # GeoJSONToOSMService writes during convert_features().
+        # Elevation — valhalla_build_elevation downloads tiles here,
+        # and valhalla_build_tiles reads them from the same path.
         config.setdefault("additional_data", {})
         config["additional_data"]["elevation"] = str(ELEVATION_DIR)
-
-        # Ensure mjolnir reads node ele tags when no DEM tiles are present
-        config["mjolnir"].setdefault("data_processing", {})
-        config["mjolnir"]["data_processing"]["infer_elevation"] = True
 
         # Loki service defaults
         config.setdefault("loki", {})

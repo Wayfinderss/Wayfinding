@@ -65,4 +65,4 @@ NODE_REGISTRY_PATH = VALHALLA_DATA_DIR / "node_registry.db"
 # tags on nodes if the directory is empty or has no coverage.
 # -------------------------------------------------------------------
 
-ELEVATION_DIR = VALHALLA_DATA_DIR / "elevation"
+ELEVATION_DIR = VALHALLA_DATA_DIR / "elevation_data"
