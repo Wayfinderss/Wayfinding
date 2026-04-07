@@ -27,16 +27,15 @@ services:
     environment:
       PYTHONPATH: /app
       REBUILD_TILES: ${REBUILD_TILES:-false}
-    volumes:
-      - ./data/valhalla:/app/data/valhalla
-    ports:
-      - "8002:8002"
-    environment:
       build_elevation: "True"
       min_x: "-80.52"
       min_y: "39.72"
       max_x: "-78.80"
       max_y: "41.15"
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    ports:
+      - "8002:8002"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/status"]
       interval: 30s
