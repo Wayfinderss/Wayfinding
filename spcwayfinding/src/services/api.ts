@@ -18,20 +18,13 @@ export interface ReverseGeocodeResult {
   lat: number;
   lon: number;
 }
-const API_BASE = "http://localhost:8000"; // Adjust if your backend is on a different port
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
   const res = await fetch(`${API_BASE}/geocode/autocomplete?q=${encodeURIComponent(query)}`);
   if (!res.ok) throw new Error("Geocoding failed");
   const data = await res.json();
-  return data.results;
-}
-
-export interface ReverseGeocodeResult {
-  label: string;
-  address: string;
-  lat: number;
-  lon: number;
+  return data.results ?? [];
 }
 
 export async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeResult | null> {
@@ -49,7 +42,9 @@ export async function reverseGeocode(lat: number, lon: number): Promise<ReverseG
     lat: data.lat ?? lat,
     lon: data.lon ?? lon,
   };
-}export async function getDirections(request: DirectionsRequest) {
+}
+
+export async function getDirections(request: DirectionsRequest) {
   const res = await fetch(`${API_BASE}/valhalla/directions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

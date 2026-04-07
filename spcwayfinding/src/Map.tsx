@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import { geocodeAddress, getDirections, reverseGeocode } from './services/api';
+import { geocodeAddress, reverseGeocode } from './services/api';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
@@ -130,14 +130,11 @@ export default function Map() {
   }, [startPoint, endPoint]);
 
   const handleLocationSelect = async (lat: number, lon: number) => {
-  console.log('handleLocationSelect fired', lat, lon);
-  alert(`clicked ${lat}, ${lon}`);
   setIsLoading(true);
   setErrorMessage(null);
 
   try {
-    const result = await reverseGeocode(lat, lon,);
-      console.log('reverse geocode result:', result);
+    const result = await reverseGeocode(lat, lon);
       const label =
         result?.address ??
         result?.label ??
@@ -151,13 +148,9 @@ export default function Map() {
       setRoutePolyline(null);
       setSearched(false);
       setSteps(null);
-      console.log('reverse geocode result:', result);
-      console.log('label being used:', label);
     } else if (!endPoint) {
       setEndPoint({ lat, lon });
       setTo(label);
-      console.log('reverse geocode result:', result);
-      console.log('label being used:', label);
     } else {
       setStartPoint({ lat, lon });
       setFrom(label);
