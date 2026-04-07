@@ -1,6 +1,9 @@
+import json
+import os
+import shutil
+import signal
 import subprocess
 import urllib.request
-import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -48,7 +51,7 @@ class ValhallaTileBuilder:
             osm_path:      Path to OSM PBF
             auto_download: Download default dataset if osm_path is missing
             force:         Clear existing tiles before building
-            append:        Add tiles without clearing existing tiles (for incremental updates)
+            append:        Add tiles without clearing existing tiles
         """
         config_path = Path(config_path)
         osm_path    = Path(osm_path)
@@ -80,24 +83,98 @@ class ValhallaTileBuilder:
 
         print("✓ Tiles built successfully")
 
+    def build_and_swap(
+        self,
+        *,
+        config_path: Path,
+        osm_path: Path,
+    ) -> None:
+        """
+        Build tiles into a staging directory, atomically swap them into
+        place, then signal Valhalla to reload — routing stays live during
+        the entire build.
+
+        Steps:
+          1. Write a temporary valhalla config pointing at the staging dir
+          2. Run valhalla_build_tiles into the staging dir
+          3. Atomic rename: staging → live (os.replace is atomic on POSIX)
+          4. Send SIGHUP to valhalla_service to trigger a hot reload
+        """
+        config_path = Path(config_path)
+        osm_path    = Path(osm_path)
+
+        if not config_path.exists():
+            raise RuntimeError("valhalla.json not found — cannot build tiles")
+        if not osm_path.exists():
+            raise FileNotFoundError(f"OSM PBF not found at {osm_path}")
+
+        staging_dir  = self.tiles_dir.parent / "tiles_staging"
+        old_dir      = self.tiles_dir.parent / "tiles_old"
+        staging_config = self.tiles_dir.parent / "valhalla_staging.json"
+
+        # Clean up any leftover staging dir from a previous failed run
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir)
+        staging_dir.mkdir(parents=True)
+
+        try:
+            # Step 1 — write a staging config pointing at the staging tile dir
+            with open(config_path) as f:
+                cfg = json.load(f)
+            cfg["mjolnir"]["tile_dir"] = str(staging_dir)
+            with open(staging_config, "w") as f:
+                json.dump(cfg, f, indent=2)
+
+            # Step 2 — build into staging
+            print(f"▶ Building tiles into staging: {staging_dir}")
+            self._run([
+                "valhalla_build_tiles",
+                "-c", str(staging_config),
+                str(osm_path),
+            ])
+
+            if not any(staging_dir.rglob("*.gph")):
+                raise RuntimeError("Staging tile build produced no tiles")
+
+            # Step 3 — atomic swap
+            # Move live → old, staging → live, then delete old
+            print("▶ Swapping tiles into place")
+            if self.tiles_dir.exists():
+                os.replace(str(self.tiles_dir), str(old_dir))
+            os.replace(str(staging_dir), str(self.tiles_dir))
+            if old_dir.exists():
+                shutil.rmtree(old_dir)
+
+            # Step 4 — signal Valhalla to reload
+            self._reload_valhalla()
+
+            print("✓ Tiles swapped and Valhalla reloaded")
+
+        except Exception:
+            # On failure, restore the old tiles if they were moved
+            if old_dir.exists() and not self.tiles_dir.exists():
+                os.replace(str(old_dir), str(self.tiles_dir))
+            raise
+
+        finally:
+            if staging_config.exists():
+                staging_config.unlink()
+            if staging_dir.exists():
+                shutil.rmtree(staging_dir)
+
     def build_many(
         self,
         *,
         config_path: Path,
         osm_paths: list[Path],
         force: bool = False,
-        remove_merge: bool = False
+        remove_merge: bool = False,
     ) -> None:
         """
         Build Valhalla tiles from many PBFs.
 
         Merges in parallel batches to stay under OS argument limits, then
         builds tiles from the single merged PBF.
-
-        Args:
-            config_path: Path to valhalla.json
-            osm_paths:   List of chunk PBF paths
-            force:       Clear existing tiles before building
         """
         config_path = Path(config_path)
 
@@ -120,7 +197,6 @@ class ValhallaTileBuilder:
 
         try:
             merged_pbf = self._merge_all(osm_paths, merge_dir)
-
             self._ensure_tile_dir()
             self._run(["valhalla_build_tiles", "-c", str(config_path), str(merged_pbf)])
 
@@ -134,29 +210,46 @@ class ValhallaTileBuilder:
                 print("Cleaning up merge directory")
                 shutil.rmtree(merge_dir)
 
+    # ------------------------------------------------------------------
+    # Valhalla hot reload
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _reload_valhalla() -> None:
+        """
+        Send SIGHUP to the valhalla_service process to trigger a hot reload.
+        Valhalla re-reads its tile directory on SIGHUP without dropping
+        in-flight requests.
+        """
+        try:
+            result = subprocess.run(
+                ["pgrep", "-x", "valhalla_service"],
+                capture_output=True, text=True,
+            )
+            pids = [int(p) for p in result.stdout.strip().splitlines() if p]
+            if not pids:
+                print("⚠ valhalla_service process not found — skipping reload signal")
+                return
+            for pid in pids:
+                os.kill(pid, signal.SIGHUP)
+                print(f"  Sent SIGHUP to valhalla_service (pid {pid})")
+        except Exception as exc:
+            print(f"⚠ Failed to reload Valhalla: {exc}")
 
     # ------------------------------------------------------------------
     # Merge helpers
     # ------------------------------------------------------------------
 
     def _merge_all(self, osm_paths: list[Path], merge_dir: Path) -> Path:
-        """
-        Recursively merge PBFs in parallel batches until one file remains.
-        Each round merges up to MERGE_BATCH_SIZE files per worker.
-        """
         current = list(osm_paths)
         round_n = 0
-
         while len(current) > 1:
             batches = [
                 current[i : i + MERGE_BATCH_SIZE]
                 for i in range(0, len(current), MERGE_BATCH_SIZE)
             ]
-
             print(f"  Merge round {round_n}: {len(current)} files → {len(batches)} batches")
-
             next_round: list[Path] = []
-
             with ThreadPoolExecutor(max_workers=MERGE_WORKERS) as ex:
                 futures = {
                     ex.submit(
@@ -168,14 +261,11 @@ class ValhallaTileBuilder:
                 }
                 for future in as_completed(futures):
                     next_round.append(future.result())
-
             current = next_round
             round_n += 1
-
         return current[0]
 
     def _merge_batch(self, paths: list[Path], out: Path) -> Path:
-        """Merge a single batch of PBFs into one output file."""
         if len(paths) == 1:
             return paths[0]
         self._run([
