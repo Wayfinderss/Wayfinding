@@ -10,18 +10,55 @@ RUN apt-get update \
         python3-pip \
         python3-venv \
         osmium-tool \
+        gdal-bin \
+        libgdal-dev \
+        python3-gdal \
+        git \
+        cmake \
+        build-essential \
+        ninja-build \
+        pkg-config \
+        libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Clone Valhalla source — pin this tag to match the base image version
+RUN git clone --depth 1 --branch 3.5.1 https://github.com/valhalla/valhalla.git /opt/valhalla-src
+
+# Overwrite the upstream pedestriancost with your custom version
+COPY valhalla_custom/pedestriancost.cc /opt/valhalla-src/src/sif/pedestriancost.cc
+
+# Rebuild and install
+RUN cmake -B /opt/valhalla-src/build -S /opt/valhalla-src -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+    && ninja -C /opt/valhalla-src/build valhalla_service \
+    && ninja -C /opt/valhalla-src/build install
 
 COPY . /app
 
-RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN git clone --depth 1 https://github.com/roelderickx/ogr2osm.git /app/ogr2osm
+
+RUN pip install uv --break-system-packages
+
+# Pin to system python3 so uv doesn't download its own CPython.
+# --system-site-packages makes python3-gdal (from apt) visible inside the venv.
+# We never ask pip to install `gdal` — the apt package already provides it.
+# ogr2osm is installed with --no-deps to avoid pulling in its `gdal` dependency,
+# but its other deps (lxml, packaging) are installed explicitly first.
+RUN uv venv /opt/venv --python $(which python3) --system-site-packages \
+    && uv pip install --python /opt/venv/bin/python \
+        -r requirements.txt \
+        lxml \
+        packaging \
+    && uv pip install --python /opt/venv/bin/python \
+        --no-deps ./ogr2osm
 
 ENV PATH="/opt/venv/bin:${PATH}"
 ENV PYTHONPATH=/app
 
 COPY scripts/bootstrap_tiles.sh /bootstrap_tiles.sh
 RUN chmod +x /bootstrap_tiles.sh
+
+ENTRYPOINT []
 
 EXPOSE 8002
 

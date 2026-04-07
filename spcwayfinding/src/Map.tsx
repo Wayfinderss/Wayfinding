@@ -267,14 +267,14 @@ export default function Map() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       <Sidebar
-        {...sharedProps}
-        from={from}
-        to={to}
-        setFrom={setFrom}
-        setTo={setTo}
-        handleSearch={handleSearch}
-        steps={steps}
-        searched={searched}
+         {...sharedProps}
+         from={from}
+         to={to}
+         setFrom={setFrom}
+         setTo={setTo}
+         handleSearch={handleSearch}
+         steps={steps}
+         searched={searched}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -286,8 +286,7 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
-          <InvalidateSize trigger={[showElevation, routePolyline]} />
-
+          <InvalidateSize trigger={[showElevation, routePolyline]} /> {/* fixes delay in map reload */}
           <TileLayer
             key={activeBasemap}
             attribution='&copy; OpenStreetMap contributors'
@@ -299,8 +298,15 @@ export default function Map() {
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
 
-        <ElevationProfile routeData={fullRouteData} />
-      </div>
+        {/* <ElevationProfile routeData={fullRouteData} /> */}
+        {showElevation && <ElevationProfile routeData={fullRouteData} />} 
+        </div>
+        {/* Right side bar three icons (outside map column) */}
+        <RightSidebar 
+          onResetBasemap={() => setTileKey(k => k + 1)}
+          showElevation={showElevation}
+          onToggleElevation={setShowElevation}
+        />     
     </div>
   );
 }

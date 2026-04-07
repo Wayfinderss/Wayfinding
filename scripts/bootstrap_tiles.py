@@ -195,7 +195,7 @@ def main():
     statuses = {f.get("properties", {}).get("Status") for f in data["features"]}
     print(f"Status values in dataset: {statuses}")
 
-    chunks = GeohasherSplittingPipeline(precision=16, skip_closed=False).run(data)
+    chunks = GeohasherSplittingPipeline(precision=1, skip_closed=False).run(data)
     total_features = sum(len(v) for v in chunks.values())
     print(f"Splitter: {len(chunks)} buckets, {total_features} features")
 
