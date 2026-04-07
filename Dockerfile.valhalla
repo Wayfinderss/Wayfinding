@@ -17,6 +17,8 @@ RUN apt-get update \
         cmake \
         build-essential \
         ninja-build \
+        pkg-config \
+        libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone Valhalla source — pin this tag to match the base image version
