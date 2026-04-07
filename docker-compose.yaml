@@ -31,15 +31,18 @@ services:
       - ./data/valhalla:/app/data/valhalla
     ports:
       - "8002:8002"
+    environment:
+      build_elevation: "True"
+      min_x: "-80.52"
+      min_y: "39.72"
+      max_x: "-78.80"
+      max_y: "41.15"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1',8002)); s.close()\""
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+      test: ["CMD", "curl", "-f", "http://localhost:8002/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 600s
 
   api:
     build:

@@ -10,12 +10,23 @@ RUN apt-get update \
         python3-pip \
         python3-venv \
         osmium-tool \
+        gdal-bin \
+        libgdal-dev \
+        python3-gdal \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app
 
-RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN pip install uv --break-system-packages
+
+# Pin to system python3 so uv doesn't download its own CPython.
+# --system-site-packages makes python3-gdal (from apt) visible inside the venv.
+RUN uv venv /opt/venv --python $(which python3) --system-site-packages \
+    && uv pip install --python /opt/venv/bin/python \
+        -r requirements.txt \
+        ujson \
+        numpy
 
 ENV PATH="/opt/venv/bin:${PATH}"
 ENV PYTHONPATH=/app
