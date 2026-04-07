@@ -13,9 +13,12 @@ RUN apt-get update \
         gdal-bin \
         libgdal-dev \
         python3-gdal \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app
+
+RUN git clone --depth 1 https://github.com/roelderickx/ogr2osm.git /app/ogr2osm
 
 RUN pip install uv --break-system-packages
 

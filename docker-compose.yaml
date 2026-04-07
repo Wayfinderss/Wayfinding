@@ -62,6 +62,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tilebuilder
+    entrypoint: []
     volumes:
       - ./data/valhalla:/app/data/valhalla
       - ./:/workspace
