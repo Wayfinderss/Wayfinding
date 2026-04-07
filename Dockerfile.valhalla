@@ -23,7 +23,7 @@ RUN apt-get update \
 RUN git clone --depth 1 --branch 3.5.1 https://github.com/valhalla/valhalla.git /opt/valhalla-src
 
 # Overwrite the upstream pedestriancost with your custom version
-COPY valhalla_custom/pedestriancost.cc /opt/valhalla-src/src/thor/pedestriancost.cc
+COPY valhalla_custom/pedestriancost.cc /opt/valhalla-src/src/sif/pedestriancost.cc
 
 # Rebuild and install
 RUN cmake -B /opt/valhalla-src/build -S /opt/valhalla-src -GNinja \
