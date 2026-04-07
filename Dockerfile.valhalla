@@ -14,7 +14,22 @@ RUN apt-get update \
         libgdal-dev \
         python3-gdal \
         git \
+        cmake \
+        build-essential \
+        ninja-build \
     && rm -rf /var/lib/apt/lists/*
+
+# Clone Valhalla source — pin this tag to match the base image version
+RUN git clone --depth 1 --branch 3.5.1 https://github.com/valhalla/valhalla.git /opt/valhalla-src
+
+# Overwrite the upstream pedestriancost with your custom version
+COPY valhalla_custom/pedestriancost.cc /opt/valhalla-src/src/thor/pedestriancost.cc
+
+# Rebuild and install
+RUN cmake -B /opt/valhalla-src/build -S /opt/valhalla-src -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+    && ninja -C /opt/valhalla-src/build valhalla_service \
+    && ninja -C /opt/valhalla-src/build install
 
 COPY . /app
 
