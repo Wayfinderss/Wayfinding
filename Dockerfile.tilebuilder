@@ -1,0 +1,21 @@
+FROM ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+
+USER root
+WORKDIR /builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gdal-bin \
+    libgdal-dev \
+    osmium-tool \
+    git \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/roelderickx/ogr2osm.git /opt/ogr2osm
+
+ENV PATH="/opt/ogr2osm:$PATH"
+
+WORKDIR /workspace
+
+CMD ["bash"]
