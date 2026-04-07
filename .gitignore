@@ -57,3 +57,5 @@ data/valhalla/chunks
 data/valhalla/node_modules
 /.venv312
 spcwayfinding/.env
+/data/valhalla/merge_tmp
+spcwayfinding/.env
