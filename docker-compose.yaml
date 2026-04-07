@@ -1,7 +1,4 @@
-version: "3.9"
-
 services:
-
   postgres:
     image: postgres:16
     environment:
@@ -12,26 +9,33 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      valhalla:
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 10
 
   valhalla:
     build:
       context: .
       dockerfile: Dockerfile.valhalla
-    volumes:
-      - ./data/valhalla:/app/data/valhalla
-    ports:
-      - "8002:8002"
+    working_dir: /app
+    entrypoint: ["/bin/bash", "/bootstrap_tiles.sh"]
     environment:
+      PYTHONPATH: /app
+      REBUILD_TILES: ${REBUILD_TILES:-false}
       build_elevation: "True"
       min_x: "-80.52"
       min_y: "39.72"
       max_x: "-78.80"
       max_y: "41.15"
+    volumes:
+      - ./data/valhalla:/app/data/valhalla
+    ports:
+      - "8002:8002"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/status"]
       interval: 30s
@@ -42,40 +46,33 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     working_dir: /app
     environment:
       PYTHONPATH: /app
       VALHALLA_URL: http://valhalla:8002
+      DB_BACKEND: postgres
+      DB_CONNECTION_STRING: host=postgres port=5432 dbname=wayfinding_logger user=postgres password=secret
     volumes:
       - ./data/valhalla:/app/data/valhalla
-    ports:
-      - "8000:8000"
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
       valhalla:
         condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/valhalla/health', timeout=2).read()\""
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
     command: ["/app/.venv/bin/uvicorn", "wayfinder.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-  tilebuilder:
-    build:
-      context: .
-      dockerfile: Dockerfile.tilebuilder
-    entrypoint: []
-    volumes:
-      - ./data/valhalla:/app/data/valhalla
-      - ./:/workspace
-    working_dir: /workspace
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   frontend:
     image: node:22-alpine
@@ -83,13 +80,11 @@ services:
     volumes:
       - ./spcwayfinding:/app
       - /app/node_modules
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000
-    ports:
-      - "5173:5173"
     depends_on:
       api:
         condition: service_healthy
+    ports:
+      - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
 volumes:

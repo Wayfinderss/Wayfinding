@@ -92,9 +92,62 @@ def tags_from_properties(attrs: dict) -> dict:
     if grade:
         tags["incline"] = f"{grade}%"
 
-    road = attrs.get("RoadName")
-    if road:
-        tags["name"] = road
+            # accessibility hint
+            if grade <= 5:
+                tags["wheelchair"] = "yes"
+            elif grade <= 8:
+                tags["wheelchair"] = "limited"
+            else:
+                tags["wheelchair"] = "no"
+
+        # ----- Road name -----
+        road = props.get("RoadName")
+        if road and road.strip():
+            tags["name"] = road.strip()
+
+        # ----- Sidewalk classification -----
+        type_name = props.get("Type_Name")
+        if type_name and type_name.lower() == "sidewalk":
+            tags["footway"] = "sidewalk"
+
+        # ----- Access status -----
+        status = props.get("Status")
+        if status:
+            if status.lower() == "open":
+                tags["foot"] = "yes"
+            else:
+                tags["foot"] = "no"
+                tags["access"] = "private"
+
+        # ----- Lighting -----
+        lighting = props.get("Lighting")
+        if lighting:
+            if str(lighting).lower() in ("yes", "true", "1"):
+                tags["lit"] = "yes"
+
+        # ----- Smoothness -----
+        condition = props.get("Condition")
+        if condition:
+            condition = condition.lower()
+            if "good" in condition:
+                tags["smoothness"] = "good"
+            elif "fair" in condition:
+                tags["smoothness"] = "intermediate"
+            elif "poor" in condition:
+                tags["smoothness"] = "bad"
+
+        # ----- Curb ramps -----
+        curb = props.get("CurbRamp")
+        if curb:
+            if str(curb).lower() in ("yes", "true", "1"):
+                tags["kerb"] = "lowered"
+            else:
+                tags["kerb"] = "raised"
+
+        # ----- Debug notes (optional) -----
+        notes = props.get("Notes")
+        if notes and notes.strip():
+            tags["note"] = notes.strip()
 
     return tags
 

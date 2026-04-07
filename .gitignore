@@ -29,6 +29,9 @@ env/
 # uv
 .uv/
 
+#env
+.env
+
 # IDEs
 .idea/
 
@@ -51,4 +54,8 @@ data/valhalla/tiles/*
 data/valhalla/*.osm
 data/valhalla/*.geojson
 data/valhalla/chunks
-data/valhalla
+data/valhalla/node_modules
+/.venv312
+spcwayfinding/.env
+/data/valhalla/merge_tmp
+spcwayfinding/.env

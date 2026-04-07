@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/geocode': {
+        target: 'http://api:8000',
+        changeOrigin: true,
+      },
       '/valhalla': {
         target: 'http://api:8000',
         changeOrigin: true,

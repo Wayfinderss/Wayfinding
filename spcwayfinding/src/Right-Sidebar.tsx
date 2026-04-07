@@ -545,28 +545,6 @@ const styles = `
     gap: 4px;
     margin-top: -2px;
   }
-
-  .apply-btn {
-    width: 100%;
-    padding: 10px;
-    border-radius: 10px;
-    border: none;
-    background: #6e94f5;
-    color: #fff;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    margin-top: 4px;
-  }
-
-  .apply-btn:hover { background: #4b77f0; }
-  .apply-btn:active { transform: scale(0.98); }
-
-  .apply-btn.applied {
-    background: #22c55e;
-  }
 `;
  
 // ─────────────────────────────────────────────
@@ -611,15 +589,6 @@ function LayerPanel({
     const [avoidStaircases, setAvoidStaircases] = useState(false);
     const [maxIncline, setMaxIncline] = useState(15);
    
-    // ── Applied state (what's going to be sent to backend) ──
-    const [appliedSettings, setAppliedSettings] = useState<{
-      profile: AccessibilityProfile;
-      avoidStaircases: boolean;
-      maxIncline: number;
-    } | null>(null);
-
-    const [justApplied, setJustApplied] = useState(false);
-
     // ── Other layers ──
     const [layers, setLayers] = useState(LAYERS);
    
@@ -631,30 +600,18 @@ function LayerPanel({
         setMaxIncline(preset.maxIncline);
       }
     };
-      
-    const handleApply = () => {
-    const settings = { profile, avoidStaircases, maxIncline };
-    setAppliedSettings(settings);
-
-    // TODO: replace with real API call e.g:
-    // await fetch('/api/accessibility-profile', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(settings),
-    // });
-
-    console.log('Applying accessibility settings:', settings);
-
-    setJustApplied(true);
-    setTimeout(() => setJustApplied(false), 1500);
-  };
-
-  const isDirty =
-    !appliedSettings ||
-    appliedSettings.profile !== profile ||
-    appliedSettings.avoidStaircases !== avoidStaircases ||
-    appliedSettings.maxIncline !== maxIncline;
-
+   
+    const isLocked = profile !== "custom";
+   
+    const handleStaircaseToggle = () => {
+      if (isLocked) return;
+      setAvoidStaircases((v) => !v);
+    };
+   
+    const handleInclineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (isLocked) return;
+      setMaxIncline(Number(e.target.value));
+    };
    
     const toggleLayer = (id: string) => {
       if (id === "elevation") {
@@ -675,7 +632,8 @@ function LayerPanel({
         <div className="a11y-banner">
           <span className="a11y-banner-icon">ℹ️</span>
           <span>
-            Adjust settings to apply to route 
+            Toggle map overlays to show or hide features. Accessibility layers are
+            (fill in later depending on backend).
           </span>
         </div>
    
@@ -725,8 +683,9 @@ function LayerPanel({
             </div>
             <button
               className={`toggle${avoidStaircases ? " on" : ""}`}
-              onClick={() => setAvoidStaircases((v) => !v)}
+              onClick={handleStaircaseToggle}
               aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+              style={isLocked ? { opacity: 0.65, cursor: "not-allowed" } : {}}
             >
               <div className="toggle-thumb" />
             </button>
@@ -748,7 +707,8 @@ function LayerPanel({
               max={30}
               step={1}
               value={maxIncline}
-              onChange={(e) => setMaxIncline(Number(e.target.value))}
+              onChange={handleInclineChange}
+              disabled={isLocked}
               aria-label={`Max incline: ${maxIncline}%`}
             />
             <div className="incline-ticks">
@@ -761,18 +721,24 @@ function LayerPanel({
               <span>30%</span>
             </div>
           </div>
+   
+          {isLocked && (
+            <div className="locked-note">
+              <span>🔒</span>
+              <span>
+                Preset values applied — switch to{" "}
+                <strong
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  onClick={() => selectProfile("custom")}
+                >
+                  Custom
+                </strong>{" "}
+                to edit
+              </span>
+            </div>
+          )}
         </div>
-
-        {/* Apply button */}
-        <button
-          className={`apply-btn${justApplied ? " applied" : ""}`}
-          onClick={handleApply}
-          disabled={!isDirty && !justApplied}
-          style={!isDirty && !justApplied ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-        >
-          {justApplied ? "✓ Applied" : isDirty ? "Apply Settings" : "Settings Applied"}
-        </button>
-
+   
         {/* ── Other layers ── */}
         <div className="layer-section-label" style={{ marginTop: 8 }}>
           Other Layers

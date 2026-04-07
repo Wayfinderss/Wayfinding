@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { geocodeAddress, reverseGeocode } from './services/api';
 import MapClickHandler from './MapClickHandler';
 import RouteMarkers from './RouteMarkers';
 import RouteLayer from './RouteLayer';
@@ -94,11 +95,33 @@ export default function Map() {
   const [activeBasemap, setTileKey] = useState(0);
   const [showElevation, setShowElevation] = useState(false);
 
-  const handleSearch = () => {
-    if (!from.trim() || !to.trim()) return;
-    setSteps(PLACEHOLDER_STEPS);
-    setSearched(true);
-  };
+  const handleSearch = async () => {
+  if (!from.trim() || !to.trim()) return;
+  setIsLoading(true);
+    setErrorMessage(null);
+  try {
+    const fromResults = await geocodeAddress(from);
+    const toResults = await geocodeAddress(to);
+    
+    if (fromResults.length && toResults.length) {
+      const start = fromResults[0];
+      const end = toResults[0];
+      
+      setStartPoint({ lat: start.lat, lon: start.lon });
+      setEndPoint({ lat: end.lat, lon: end.lon });
+      await fetchRoute(
+        { lat: start.lat, lon: start.lon },
+        { lat: end.lat, lon: end.lon }
+      );
+    } else {
+      setErrorMessage('No matching addresses found');
+    }
+  } catch (error) {
+    setErrorMessage('Failed to geocode addresses');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     if (startPoint && endPoint) {
@@ -106,19 +129,43 @@ export default function Map() {
     }
   }, [startPoint, endPoint]);
 
-  const handleLocationSelect = (lat: number, lon: number) => {
-    if (!startPoint) {
+  const handleLocationSelect = async (lat: number, lon: number) => {
+  setIsLoading(true);
+  setErrorMessage(null);
+
+  try {
+    const result = await reverseGeocode(lat, lon);
+      const label =
+        result?.address ??
+        result?.label ??
+        `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      if (!startPoint) {
+      // First click sets start point
       setStartPoint({ lat, lon });
+      setFrom(label);
       setEndPoint(null);
+      setTo('');
       setRoutePolyline(null);
-      setErrorMessage(null);
+      setSearched(false);
+      setSteps(null);
     } else if (!endPoint) {
       setEndPoint({ lat, lon });
+      setTo(label);
     } else {
       setStartPoint({ lat, lon });
+      setFrom(label);
       setEndPoint(null);
+      setTo('');
       setRoutePolyline(null);
       setErrorMessage(null);
+      setSearched(false);
+      setSteps(null);
+    }
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    setErrorMessage('Failed to get address from map click');
+  } finally {
+    setIsLoading(false);
     }
   };
 
@@ -208,19 +255,26 @@ export default function Map() {
     setFullRouteData(null);
   };
 
-  const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
+  const sharedProps = { 
+    startPoint, 
+    endPoint,
+     isLoading,
+     errorMessage,
+     routePolyline,
+     clearRoute
+     };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       <Sidebar
-         {...sharedProps}
-         from={from}
-         to={to}
-         setFrom={setFrom}
-         setTo={setTo}
-         handleSearch={handleSearch}
-         steps={steps}
-         searched={searched}
+        {...sharedProps}
+        from={from}
+        to={to}
+        setFrom={setFrom}
+        setTo={setTo}
+        handleSearch={handleSearch}
+        steps={steps}
+        searched={searched}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -232,7 +286,8 @@ export default function Map() {
           scrollWheelZoom={true}
           style={{ flex: 1, width: '100%' }}
         >
-          <InvalidateSize trigger={[showElevation, routePolyline]} /> {/* fixes delay in map reload */}
+          <InvalidateSize trigger={[showElevation, routePolyline]} />
+
           <TileLayer
             key={activeBasemap}
             attribution='&copy; OpenStreetMap contributors'
@@ -244,15 +299,8 @@ export default function Map() {
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
 
-        {/* <ElevationProfile routeData={fullRouteData} /> */}
-        {showElevation && <ElevationProfile routeData={fullRouteData} />} 
-        </div>
-        {/* Right side bar three icons (outside map column) */}
-        <RightSidebar 
-          onResetBasemap={() => setTileKey(k => k + 1)}
-          showElevation={showElevation}
-          onToggleElevation={setShowElevation}
-        />     
+        <ElevationProfile routeData={fullRouteData} />
+      </div>
     </div>
   );
 }
