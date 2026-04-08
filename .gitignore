@@ -30,6 +30,9 @@ env/
 # uv
 .uv/
 
+#env
+.env
+
 # IDEs
 .idea/
 
@@ -55,3 +58,8 @@ data/valhalla/chunks
 data/valhalla.env
 data/valhalla
 data/valhalla/
+data/valhalla/node_modules
+/.venv312
+spcwayfinding/.env
+/data/valhalla/merge_tmp
+spcwayfinding/.env

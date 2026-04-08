@@ -247,7 +247,14 @@ export default function Map() {
     setFullRouteData(null);
   };
 
-  const sharedProps = { startPoint, endPoint, isLoading, errorMessage, routePolyline, clearRoute };
+  const sharedProps = { 
+    startPoint, 
+    endPoint,
+     isLoading,
+     errorMessage,
+     routePolyline,
+     clearRoute
+     };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>

@@ -1,8 +1,17 @@
 import SPC_LOGO from './assets/SPC_Blk.png'; 
+import { useEffect, useRef, useState } from 'react';
+import { geocodeAddress } from './services/api';
 interface Step {
     instruction: string;
     detail: string;
   }
+
+interface GeocodeResult {
+  label: string;
+  address: string;
+  lat: number;
+  lon: number;
+}
   
   interface SidebarProps {
     from: string;
@@ -124,8 +133,14 @@ interface Step {
       display: flex;
       align-items: center;
       gap: 10px;
+      position: relative;
     }
   
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
     .dot-col {
       display: flex;
       align-items: center;
@@ -158,6 +173,31 @@ interface Step {
   
     .route-input::placeholder { color: #555; }
     .route-input:focus { border-color: #c8f135; background: #f5f5f5; }
+
+    .suggestions {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #111;
+      border-radius: 8px;
+      list-style: none;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 1001;
+    }
+
+    .suggestion {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      color: #111;
+    }
+
+    .suggestion:hover { background: #f5f5f5; }
+    .suggestion:last-child { border-bottom: none; }
   
     .search-btn {
       width: 100%;
@@ -287,6 +327,76 @@ interface Step {
     isLoading, errorMessage, routePolyline,
     startPoint, endPoint, clearRoute,
   }: SidebarProps) {
+    const [fromSuggestions, setFromSuggestions] = useState<GeocodeResult[]>([]);
+    const [toSuggestions, setToSuggestions] = useState<GeocodeResult[]>([]);
+    const [showFromSuggestions, setShowFromSuggestions] = useState(false);
+    const [showToSuggestions, setShowToSuggestions] = useState(false);
+    const fromDebounceRef = useRef<number | null>(null);
+    const toDebounceRef = useRef<number | null>(null);
+
+    const handleFromChange = (query: string) => {
+      setFrom(query);
+      if (fromDebounceRef.current) window.clearTimeout(fromDebounceRef.current);
+
+      if (query.trim().length < 3) {
+        setFromSuggestions([]);
+        setShowFromSuggestions(false);
+        return;
+      }
+
+      fromDebounceRef.current = window.setTimeout(async () => {
+        try {
+          const results = await geocodeAddress(query);
+          setFromSuggestions(results);
+          setShowFromSuggestions(true);
+        } catch {
+          setFromSuggestions([]);
+          setShowFromSuggestions(false);
+        }
+      }, 250);
+    };
+
+    const handleToChange = (query: string) => {
+      setTo(query);
+      if (toDebounceRef.current) window.clearTimeout(toDebounceRef.current);
+
+      if (query.trim().length < 3) {
+        setToSuggestions([]);
+        setShowToSuggestions(false);
+        return;
+      }
+
+      toDebounceRef.current = window.setTimeout(async () => {
+        try {
+          const results = await geocodeAddress(query);
+          setToSuggestions(results);
+          setShowToSuggestions(true);
+        } catch {
+          setToSuggestions([]);
+          setShowToSuggestions(false);
+        }
+      }, 250);
+    };
+
+    const selectFromSuggestion = (suggestion: GeocodeResult) => {
+      setFrom(suggestion.label);
+      setFromSuggestions([]);
+      setShowFromSuggestions(false);
+    };
+
+    const selectToSuggestion = (suggestion: GeocodeResult) => {
+      setTo(suggestion.label);
+      setToSuggestions([]);
+      setShowToSuggestions(false);
+    };
+
+    useEffect(() => {
+      return () => {
+        if (fromDebounceRef.current) window.clearTimeout(fromDebounceRef.current);
+        if (toDebounceRef.current) window.clearTimeout(toDebounceRef.current);
+      };
+    }, []);
+
     const clickHint = !startPoint
       ? 'Or click the map to set a start point'
       : !endPoint
@@ -315,23 +425,49 @@ interface Step {
             <div className="route-inputs">
               <div className="input-row">
                 <div className="dot-col"><div className="dot origin" /></div>
-                <input
-                  className="route-input"
-                  placeholder="From — starting point"
-                  value={from}
-                  onChange={e => setFrom(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
+                <div className="input-wrapper">
+                  <input
+                    className="route-input"
+                    placeholder="From — starting point"
+                    value={from}
+                    onChange={e => handleFromChange(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    onFocus={() => from.length >= 3 && setShowFromSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowFromSuggestions(false), 100)}
+                  />
+                  {showFromSuggestions && fromSuggestions.length > 0 && (
+                    <ul className="suggestions">
+                      {fromSuggestions.map((s, i) => (
+                        <li key={`${s.label}-${i}`} className="suggestion" onMouseDown={() => selectFromSuggestion(s)}>
+                          {s.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               <div className="input-row">
                 <div className="dot-col"><div className="dot dest" /></div>
-                <input
-                  className="route-input"
-                  placeholder="To — destination"
-                  value={to}
-                  onChange={e => setTo(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
+                <div className="input-wrapper">
+                  <input
+                    className="route-input"
+                    placeholder="To — destination"
+                    value={to}
+                    onChange={e => handleToChange(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    onFocus={() => to.length >= 3 && setShowToSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowToSuggestions(false), 100)}
+                  />
+                  {showToSuggestions && toSuggestions.length > 0 && (
+                    <ul className="suggestions">
+                      {toSuggestions.map((s, i) => (
+                        <li key={`${s.label}-${i}`} className="suggestion" onMouseDown={() => selectToSuggestion(s)}>
+                          {s.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
  

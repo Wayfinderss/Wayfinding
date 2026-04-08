@@ -744,24 +744,6 @@ Cost PedestrianCost::EdgeCost(const baldr::DirectedEdge* edge,
   // TODO - consider using an array of "use factors" to avoid this conditional
   float factor = 1.0f + kSacScaleCostFactor[static_cast<uint8_t>(edge->sac_scale())] +
                  grade_penalty[edge->weighted_grade()];
-
-  // Soft penalty for edges exceeding user's preferred max grade.
-  // Uses max_up_slope/max_down_slope (actual peak % on the edge) rather than
-  // weighted_grade (averaged bucket), so a short steep ramp is still caught.
-  // Only activates when user has set a grade preference below the default.
-  if (max_grade_ < kDefaultMaxGradeFoot) {
-    float up   = static_cast<float>(edge->max_up_slope());
-    float down = static_cast<float>(edge->max_down_slope());
-    float peak = std::max(up, down);
-    float limit = static_cast<float>(max_grade_);
-    if (peak > limit) {
-      float overage = peak - limit;
-      // Quadratic scaling: slightly over is moderate, far over is massive.
-      // 1% over -> +50, 2% over -> +200, 5% over -> +1250
-      factor += 50.0f * overage * overage;
-    }
-  }
-
   if (edge->use() == Use::kFootway || edge->use() == Use::kSidewalk) {
     factor *= walkway_factor_;
   } else if (edge->use() == Use::kAlley) {

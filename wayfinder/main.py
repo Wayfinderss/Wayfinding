@@ -6,6 +6,7 @@ from wayfinder.http.health import router as health_router
 from wayfinder.http.geocode import router as geocode_router  # ← add this
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 
@@ -31,6 +32,13 @@ async def lifespan(app: FastAPI):
 
 def create_app():
     api_app = FastAPI(lifespan=lifespan)
+
+    api_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     api_app.include_router(router)
     api_app.include_router(demand_router)
