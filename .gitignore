@@ -25,6 +25,7 @@ wheels/
 venv/
 ENV/
 env/
+.env
 
 # uv
 .uv/
@@ -52,3 +53,4 @@ data/valhalla/*.osm
 data/valhalla/*.geojson
 data/valhalla/chunks
 data/valhalla.env
+data/valhalla
