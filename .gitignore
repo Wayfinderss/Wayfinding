@@ -25,6 +25,7 @@ wheels/
 venv/
 ENV/
 env/
+.env
 
 # uv
 .uv/
@@ -54,6 +55,9 @@ data/valhalla/tiles/*
 data/valhalla/*.osm
 data/valhalla/*.geojson
 data/valhalla/chunks
+data/valhalla.env
+data/valhalla
+data/valhalla/
 data/valhalla/node_modules
 /.venv312
 spcwayfinding/.env

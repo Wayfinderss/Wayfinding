@@ -51,8 +51,7 @@ services:
     environment:
       PYTHONPATH: /app
       VALHALLA_URL: http://valhalla:8002
-      DB_BACKEND: postgres
-      DB_CONNECTION_STRING: host=postgres port=5432 dbname=wayfinding_logger user=postgres password=secret
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}  # ← add this
     volumes:
       - ./data/valhalla:/app/data/valhalla
     depends_on:
@@ -80,6 +79,9 @@ services:
     volumes:
       - ./spcwayfinding:/app
       - /app/node_modules
+    # remove the environment block entirely
+    ports:
+      - "5173:5173"
     depends_on:
       api:
         condition: service_healthy

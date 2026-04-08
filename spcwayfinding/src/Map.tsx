@@ -1,6 +1,3 @@
-//install leaflet, react-leaflet, @types/leaflet.
-//run npm install react react-dom leaflet react-leaflet
-
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { geocodeAddress, reverseGeocode } from './services/api';
@@ -12,16 +9,6 @@ import RightSidebar from './Right-Sidebar';
 import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
 import 'leaflet/dist/leaflet.css';
-
-// Placeholder step data
-const PLACEHOLDER_STEPS = [
-  { instruction: 'Head north on Forbes Ave toward Craig St', detail: '0.2 mi · 1 min' },
-  { instruction: 'Turn right onto Craig St', detail: '0.1 mi · 1 min' },
-  { instruction: 'Turn left onto Fifth Ave', detail: '1.3 mi · 4 min' },
-  { instruction: 'Keep right to stay on Fifth Ave', detail: '0.6 mi · 2 min' },
-  { instruction: 'Turn right onto Morewood Ave', detail: '0.3 mi · 1 min' },
-  { instruction: 'Arrive at your destination on the right', detail: '—' },
-];
 
 function InvalidateSize({ trigger }: { trigger: any }) {
   const map = useMap();
@@ -89,39 +76,44 @@ export default function Map() {
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [steps, setSteps] = useState<typeof PLACEHOLDER_STEPS | null>(null);
+  const [steps, setSteps] = useState<{ instruction: string; detail: string }[] | null>(null);
   const [searched, setSearched] = useState(false);
 
   const [activeBasemap, setTileKey] = useState(0);
   const [showElevation, setShowElevation] = useState(false);
 
   const handleSearch = async () => {
-  if (!from.trim() || !to.trim()) return;
-  setIsLoading(true);
+    if (!from.trim() || !to.trim()) return;
+    setIsLoading(true);
     setErrorMessage(null);
-  try {
-    const fromResults = await geocodeAddress(from);
-    const toResults = await geocodeAddress(to);
-    
-    if (fromResults.length && toResults.length) {
-      const start = fromResults[0];
-      const end = toResults[0];
-      
-      setStartPoint({ lat: start.lat, lon: start.lon });
-      setEndPoint({ lat: end.lat, lon: end.lon });
-      await fetchRoute(
-        { lat: start.lat, lon: start.lon },
-        { lat: end.lat, lon: end.lon }
-      );
-    } else {
-      setErrorMessage('No matching addresses found');
+
+    try {
+      const fromResults = await geocodeAddress(from);
+      console.log('fromResults:', fromResults);
+      const toResults = await geocodeAddress(to);
+      console.log('toResults:', toResults);
+
+      if (fromResults.length && toResults.length) {
+        const start = fromResults[0];
+        const end = toResults[0];
+
+        setStartPoint({ lat: start.lat, lon: start.lon });
+        setEndPoint({ lat: end.lat, lon: end.lon });
+
+        await fetchRoute(
+          { lat: start.lat, lon: start.lon },
+          { lat: end.lat, lon: end.lon }
+        );
+      } else {
+        setErrorMessage('No matching addresses found');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setErrorMessage('Failed to geocode addresses');
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    setErrorMessage('Failed to geocode addresses');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     if (startPoint && endPoint) {
@@ -130,42 +122,42 @@ export default function Map() {
   }, [startPoint, endPoint]);
 
   const handleLocationSelect = async (lat: number, lon: number) => {
-  setIsLoading(true);
-  setErrorMessage(null);
+    setIsLoading(true);
+    setErrorMessage(null);
 
-  try {
-    const result = await reverseGeocode(lat, lon);
+    try {
+      const result = await reverseGeocode(lat, lon);
       const label =
         result?.address ??
         result?.label ??
         `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
       if (!startPoint) {
-      // First click sets start point
-      setStartPoint({ lat, lon });
-      setFrom(label);
-      setEndPoint(null);
-      setTo('');
-      setRoutePolyline(null);
-      setSearched(false);
-      setSteps(null);
-    } else if (!endPoint) {
-      setEndPoint({ lat, lon });
-      setTo(label);
-    } else {
-      setStartPoint({ lat, lon });
-      setFrom(label);
-      setEndPoint(null);
-      setTo('');
-      setRoutePolyline(null);
-      setErrorMessage(null);
-      setSearched(false);
-      setSteps(null);
-    }
-  } catch (error) {
-    console.error('Reverse geocoding failed:', error);
-    setErrorMessage('Failed to get address from map click');
-  } finally {
-    setIsLoading(false);
+        setStartPoint({ lat, lon });
+        setFrom(label);
+        setEndPoint(null);
+        setTo('');
+        setRoutePolyline(null);
+        setSearched(false);
+        setSteps(null);
+      } else if (!endPoint) {
+        setEndPoint({ lat, lon });
+        setTo(label);
+      } else {
+        setStartPoint({ lat, lon });
+        setFrom(label);
+        setEndPoint(null);
+        setTo('');
+        setRoutePolyline(null);
+        setErrorMessage(null);
+        setSearched(false);
+        setSteps(null);
+      }
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      setErrorMessage('Failed to get address from map click');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -287,7 +279,6 @@ export default function Map() {
           style={{ flex: 1, width: '100%' }}
         >
           <InvalidateSize trigger={[showElevation, routePolyline]} />
-
           <TileLayer
             key={activeBasemap}
             attribution='&copy; OpenStreetMap contributors'
@@ -299,8 +290,14 @@ export default function Map() {
           <RouteLayer encodedPolyline={routePolyline} />
         </MapContainer>
 
-        <ElevationProfile routeData={fullRouteData} />
+        {showElevation && <ElevationProfile routeData={fullRouteData} />}
       </div>
+
+      <RightSidebar
+        onResetBasemap={() => setTileKey(k => k + 1)}
+        showElevation={showElevation}
+        onToggleElevation={setShowElevation}
+      />
     </div>
   );
 }

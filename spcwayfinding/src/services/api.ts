@@ -18,7 +18,7 @@ export interface ReverseGeocodeResult {
   lat: number;
   lon: number;
 }
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE = "";
 
 export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
   const res = await fetch(`${API_BASE}/geocode/autocomplete?q=${encodeURIComponent(query)}`);
