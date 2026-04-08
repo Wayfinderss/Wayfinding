@@ -51,4 +51,4 @@ data/valhalla/tiles/*
 data/valhalla/*.osm
 data/valhalla/*.geojson
 data/valhalla/chunks
-data/valhalla
+data/valhalla.env

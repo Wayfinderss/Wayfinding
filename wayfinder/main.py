@@ -3,6 +3,7 @@ from wayfinder.http.routes import router
 from wayfinder.http.demand import router as demand_router
 from wayfinder.http.tile_reloading import router as tile_router
 from wayfinder.http.health import router as health_router
+from wayfinder.http.geocode import router as geocode_router  # ← add this
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -35,6 +36,7 @@ def create_app():
     api_app.include_router(demand_router)
     api_app.include_router(tile_router)
     api_app.include_router(health_router)
+    api_app.include_router(geocode_router)  # ← add this
 
     return api_app
 

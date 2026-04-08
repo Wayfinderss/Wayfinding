@@ -47,6 +47,7 @@ services:
     environment:
       PYTHONPATH: /app
       VALHALLA_URL: http://valhalla:8002
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}  # ← add this
     volumes:
       - ./data/valhalla:/app/data/valhalla
     ports:
@@ -83,8 +84,7 @@ services:
     volumes:
       - ./spcwayfinding:/app
       - /app/node_modules
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000
+    # remove the environment block entirely
     ports:
       - "5173:5173"
     depends_on:
