@@ -12,10 +12,6 @@ export default defineConfig({
       '/valhalla': {
         target: 'http://api:8000',
         changeOrigin: true,
-      },
-      '/geocode': {
-        target: 'http://api:8000',
-        changeOrigin: true,
       }
     }
   }
