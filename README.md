@@ -1,8 +1,8 @@
-# 🗺️ SPC Wayfinding
+# SPC Wayfinding
 
 > An accessibility-focused sidewalk routing application for Southwestern Pennsylvania, built on real sidewalk data from the Southwestern Pennsylvania Commission (SPC).
 
-![Wayfnding Demo Screenshot](./static/WayfindingDemo.png)
+Wayfnding Demo Screenshot
 
 ## Overview
 
@@ -13,6 +13,7 @@ The application primarily covers the geographic bounding box of the SPC region:
 - **Longitude:** -80.52° to -78.80°
 - **Latitude:** 39.72° to 41.15°
 
+**[See Installation Instructions](#getting-started)**
 ---
 
 ## Architecture
@@ -35,21 +36,103 @@ Browser (port 5173)
  (port 8002)
 ```
 
-| Service | Image / Build | Port | Role |
-|---|---|---|---|
-| `frontend` | `node:22-alpine` | `5173` | Vite-based frontend UI served to the browser |
-| `api` | Custom (`Dockerfile`) | `8000` | FastAPI backend — handles routing requests, logging, and business logic |
+
+| Service    | Image / Build                  | Port   | Role                                                                                                            |
+| ---------- | ------------------------------ | ------ | --------------------------------------------------------------------------------------------------------------- |
+| `frontend` | `node:22-alpine`               | `5173` | Vite-based frontend UI served to the browser                                                                    |
+| `api`      | Custom (`Dockerfile`)          | `8000` | FastAPI backend — handles routing requests, logging, and business logic                                         |
 | `valhalla` | Custom (`Dockerfile.valhalla`) | `8002` | [Valhalla](https://github.com/valhalla/valhalla) routing engine — computes pedestrian paths from OSM + SPC data |
-| `postgres` | `postgres:16` | `5432` | PostgreSQL database for logging and persistent data |
+| `postgres` | `postgres:16`                  | `5432` | PostgreSQL database for logging and persistent data                                                             |
+
 
 ### Startup Order
 
 Docker Compose enforces a strict startup sequence to ensure each service is ready before the next one depends on it:
 
-1. **`valhalla`** starts first and bootstraps the routing tile data
-2. **`postgres`** starts after Valhalla and waits until it passes a health check
-3. **`api`** starts only after both Postgres and Valhalla are healthy
-4. **`frontend`** starts last, once the API is healthy
+1. `**valhalla**` starts first and bootstraps the routing tile data
+2. `**postgres**` starts after Valhalla and waits until it passes a health check
+3. `**api**` starts only after both Postgres and Valhalla are healthy
+4. `**frontend**` starts last, once the API is healthy
+
+---
+
+## API Reference
+
+The full interactive API docs (Swagger UI) are available at **[http://localhost:8000/docs](http://localhost:8000/docs)** once the app is running.
+
+### `POST /valhalla/route`
+
+Computes a pedestrian route between two coordinates. All routing requests are logged to the Postgres database.
+
+**Request body:**
+
+```json
+{
+  "locations": [
+    { "lat": 40.4406, "lon": -79.9959 },
+    { "lat": 40.4450, "lon": -79.9900 }
+  ],
+  "costing": "pedestrian",
+  "directions_options": {
+    "units": "miles"
+  },
+  "shape_format": "geojson",
+  "elevation_interval": 30,
+  "user_id": "optional-user-identifier"
+}
+```
+
+
+| Field                      | Type   | Required | Description                                                     |
+| -------------------------- | ------ | -------- | --------------------------------------------------------------- |
+| `locations`                | array  | ✅        | Exactly two points: `[origin, destination]`                     |
+| `costing`                  | string | —        | Routing profile. Defaults to `"pedestrian"`                     |
+| `directions_options.units` | string | —        | `"miles"` or `"kilometers"`                                     |
+| `shape_format`             | string | —        | Format for the returned path geometry (e.g. `"geojson"`)        |
+| `elevation_interval`       | int    | —        | Interval in meters at which to sample elevation along the route |
+| `user_id`                  | string | —        | Optional identifier logged with the request for analytics       |
+
+
+---
+
+### `GET /geocode/autocomplete`
+
+Returns address suggestions for a partial search string. Powered by Geoapify.
+
+
+| Query param | Type   | Description                             |
+| ----------- | ------ | --------------------------------------- |
+| `q`         | string | Partial address or place name to search |
+
+
+**Example:** `GET /geocode/autocomplete?q=Forbes+Ave+Pittsburgh`
+
+---
+
+### `GET /geocode/reverse`
+
+Returns a human-readable address for a given coordinate pair.
+
+
+| Query param | Type  | Description |
+| ----------- | ----- | ----------- |
+| `lat`       | float | Latitude    |
+| `lon`       | float | Longitude   |
+
+
+**Example:** `GET /geocode/reverse?lat=40.4406&lon=-79.9959`
+
+---
+
+## Valhalla Bootstrap Process
+
+When the `valhalla` container starts, `bootstrap_tiles.sh` runs automatically and does the following:
+
+1. **Builds routing tiles** — runs `scripts/bootstrap_tiles.py` to process SPC sidewalk and OSM data into Valhalla's internal tile format. Pass `REBUILD_TILES=true` to force a full rebuild from scratch.
+2. **Downloads elevation data** — fetches SRTM elevation tiles for the SPC bounding box using `valhalla_build_elevation`. Elevation data is cached in `./data/valhalla/elevation_data/` and skipped on subsequent starts if already present.
+3. **Starts the routing service** — launches `valhalla_service` to begin serving routing requests on port 8002.
+
+> Steps 1 and 2 only run in full on the first startup. Subsequent starts skip cached data and reach a healthy state much faster.
 
 ---
 
@@ -78,7 +161,7 @@ ADMIN_API_KEY=your_admin_key_here
 REBUILD_TILES=false
 ```
 
-> ⚠️ Never commit your `.env` file to version control. Add it to `.gitignore`.
+> Make sure not to commit your `.env` file to version control. Add it to `.gitignore`.
 
 ---
 
@@ -87,7 +170,7 @@ REBUILD_TILES=false
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/wayfinding.git
+git clone https://github.com/Wayfinderss/Wayfinding.git
 cd wayfinding
 ```
 
@@ -105,6 +188,7 @@ docker-compose up -d --build
 ```
 
 This single command will:
+
 - Build the `api` and `valhalla` Docker images from the local Dockerfiles
 - Pull the `postgres` and `node` base images
 - Run `bootstrap_tiles.sh` inside the Valhalla container to download and process OSM + SPC sidewalk data into routing tiles
@@ -134,7 +218,7 @@ curl http://localhost:8000/valhalla/health
 
 ### 5. Open the app
 
-Navigate to **http://localhost:5173** in your browser.
+Navigate to **[http://localhost:5173](http://localhost:5173)** in your browser.
 
 ---
 
@@ -173,15 +257,17 @@ Valhalla routing tiles are stored in `./data/valhalla/` on your host machine (mo
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Node.js 22, Vite |
-| Backend API | Python 3.11+, FastAPI, Uvicorn |
-| Routing Engine | [Valhalla](https://github.com/valhalla/valhalla) (via [gis-ops Docker image](https://github.com/gis-ops/docker-valhalla)) |
-| Map Data Processing | [osmium-tool](https://osmcode.org/osmium-tool/), GDAL, pyosmium |
-| Database | PostgreSQL 16 |
-| Geocoding | [Geoapify](https://www.geoapify.com/) |
-| Containerization | Docker, Docker Compose |
+
+| Layer               | Technology                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Frontend            | Node.js 22, Vite                                                                                                          |
+| Backend API         | Python 3.11+, FastAPI, Uvicorn                                                                                            |
+| Routing Engine      | [Valhalla](https://github.com/valhalla/valhalla) (via [gis-ops Docker image](https://github.com/gis-ops/docker-valhalla)) |
+| Map Data Processing | [osmium-tool](https://osmcode.org/osmium-tool/), GDAL, pyosmium                                                           |
+| Database            | PostgreSQL 16                                                                                                             |
+| Geocoding           | [Geoapify](https://www.geoapify.com/)                                                                                     |
+| Containerization    | Docker, Docker Compose                                                                                                    |
+
 
 ---
 
@@ -193,8 +279,6 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-<!-- TODO: Add your license -->
-
 ---
 
 ## Acknowledgments
@@ -202,3 +286,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 - [Southwestern Pennsylvania Commission (SPC)](https://www.spcregion.org/) for sidewalk network data
 - [Valhalla](https://github.com/valhalla/valhalla) open-source routing engine
 - [OpenStreetMap](https://www.openstreetmap.org/) contributors
+
