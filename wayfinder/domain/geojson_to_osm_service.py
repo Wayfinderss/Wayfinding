@@ -39,7 +39,7 @@ def tags_from_properties(attrs: dict) -> dict:
     if not attrs:
         return {}
 
-    props = {k: (v.lower() if isinstance(v, str) else v) for k, v in attrs.items()}
+    attrs = {k: (v.lower() if isinstance(v, str) else v) for k, v in attrs.items()}
 
     tags = {}
     type_name = attrs.get("Type_Name") or ""
@@ -92,7 +92,6 @@ def tags_from_properties(attrs: dict) -> dict:
     if grade:
         tags["incline"] = f"{grade}%"
 
-        # accessibility hint
         if grade <= 5:
             tags["wheelchair"] = "yes"
         elif grade <= 8:
@@ -100,54 +99,35 @@ def tags_from_properties(attrs: dict) -> dict:
         else:
             tags["wheelchair"] = "no"
 
-        # ----- Road name -----
-        road = props.get("RoadName")
-        if road and road.strip():
-            tags["name"] = road.strip()
+    road = attrs.get("RoadName")
+    if road and road.strip():
+        tags["name"] = road.strip()
 
-        # ----- Sidewalk classification -----
-        type_name = props.get("Type_Name")
-        if type_name and type_name.lower() == "sidewalk":
-            tags["footway"] = "sidewalk"
+    lighting = attrs.get("Lighting")
+    if lighting:
+        if str(lighting).lower() in ("yes", "true", "1"):
+            tags["lit"] = "yes"
 
-        # ----- Access status -----
-        status = props.get("Status")
-        if status:
-            if status.lower() == "open":
-                tags["foot"] = "yes"
-            else:
-                tags["foot"] = "no"
-                tags["access"] = "private"
+    condition = attrs.get("Condition")
+    if condition:
+        condition = condition.lower()
+        if "good" in condition:
+            tags["smoothness"] = "good"
+        elif "fair" in condition:
+            tags["smoothness"] = "intermediate"
+        elif "poor" in condition:
+            tags["smoothness"] = "bad"
 
-        # ----- Lighting -----
-        lighting = props.get("Lighting")
-        if lighting:
-            if str(lighting).lower() in ("yes", "true", "1"):
-                tags["lit"] = "yes"
+    curb = attrs.get("CurbRamp")
+    if curb:
+        if str(curb).lower() in ("yes", "true", "1"):
+            tags["kerb"] = "lowered"
+        else:
+            tags["kerb"] = "raised"
 
-        # ----- Smoothness -----
-        condition = props.get("Condition")
-        if condition:
-            condition = condition.lower()
-            if "good" in condition:
-                tags["smoothness"] = "good"
-            elif "fair" in condition:
-                tags["smoothness"] = "intermediate"
-            elif "poor" in condition:
-                tags["smoothness"] = "bad"
-
-        # ----- Curb ramps -----
-        curb = props.get("CurbRamp")
-        if curb:
-            if str(curb).lower() in ("yes", "true", "1"):
-                tags["kerb"] = "lowered"
-            else:
-                tags["kerb"] = "raised"
-
-        # ----- Debug notes (optional) -----
-        notes = props.get("Notes")
-        if notes and notes.strip():
-            tags["note"] = notes.strip()
+    notes = attrs.get("Notes")
+    if notes and notes.strip():
+        tags["note"] = notes.strip()
 
     return tags
 
@@ -205,8 +185,6 @@ class GeoJSONToOSMService:
         Convert a full GeoJSON FeatureCollection to OSM XML.
         Used by bootstrap. Delegates to convert_features().
         """
-        # ujson is ~3x faster than stdlib json for large files; fall back
-        # gracefully if not installed.
         try:
             import ujson
             data = ujson.loads(geojson_path.read_bytes())
@@ -230,15 +208,16 @@ class GeoJSONToOSMService:
         - Loads registry into memory for O(1) node ID lookups
         - Uses numpy for vectorised elevation interpolation
         - Streams XML directly to disk — no in-memory element tree
+        - Registers object_id → way_id mappings in bulk
         """
         osm_path.parent.mkdir(parents=True, exist_ok=True)
 
         total = len(features)
 
-        # Load existing nodes into memory for fast in-process lookups
         mem: dict[tuple[float, float], int] = registry.load_into_memory()
         next_id: int = registry.next_node_id()
         new_nodes: dict[tuple[float, float], int] = {}
+        new_ways: list[dict] = []  # list of {object_id, way_id, props, geometry}
 
         def _get_or_create(lon: float, lat: float) -> int:
             nonlocal next_id
@@ -276,6 +255,9 @@ class GeoJSONToOSMService:
                 else registry._next_id("next_way_id")
             )
 
+            if object_id:
+                new_ways.append({"object_id": int(object_id), "props": props, "geometry": geom})
+
             lons_arr = np.array([c[0] for c in coords], dtype=np.float64)
             lats_arr = np.array([c[1] for c in coords], dtype=np.float64)
 
@@ -283,7 +265,6 @@ class GeoJSONToOSMService:
             z_max = float(props.get("Z_Max") or 0.0)
             grade = float(props.get("Grade") or 0.0)
 
-            # Guard against NaN/inf from bad source data
             if not all(math.isfinite(v) for v in (z_min, z_max, grade)):
                 z_min, z_max, grade = 0.0, 0.0, 0.0
 
@@ -300,7 +281,7 @@ class GeoJSONToOSMService:
 
             way_data.append((way_id, node_ids, tags_from_properties(props)))
 
-        # Flush new nodes to registry in one batch
+        # Flush new nodes and ways to registry in one batch
         if new_nodes:
             registry._conn.execute(
                 "UPDATE counters SET value = ? WHERE name = 'next_node_id'",
@@ -308,6 +289,10 @@ class GeoJSONToOSMService:
             )
             registry.bulk_insert(new_nodes)
             print(f"  Registry: {len(new_nodes):,} new nodes, {len(mem):,} total")
+
+        if new_ways:
+            registry.bulk_register_ways(new_ways)
+            print(f"  Registry: {len(new_ways):,} ways registered")
 
         # Stream OSM XML to disk
         print(f"  Writing OSM XML ({len(coord_to_id):,} nodes, {len(way_data):,} ways)…")
