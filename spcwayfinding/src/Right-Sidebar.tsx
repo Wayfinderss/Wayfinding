@@ -32,7 +32,7 @@ const LEGEND_ITEMS = [
   },
 ];
 
-// Profile presets — fake numbers for now need backend 
+// Profile presets — fake numbers for now need backend
 const PROFILE_PRESETS: Record<
   "wheelchair" | "cane",
   { avoidStaircases: boolean; maxIncline: number }
@@ -54,7 +54,7 @@ const LAYERS = [
 ];
 
 // ─────────────────────────────────────────────
-//  Icons 
+//  Icons
 // ─────────────────────────────────────────────
 const IconLegend = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

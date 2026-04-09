@@ -1,0 +1,210 @@
+Bootstrapping Valhalla tiles...
+Ensuring GeoJSON is present...
+Downloading ArcGIS sidewalks…
+Found 351152 ArcGIS features
+Saved 351152 features → /app/data/valhalla/custom_sidewalks.geojson
+Downloading elevation tiles...
+Elevation tiles downloaded → /app/data/valhalla/elevation_data
+Elevation tiles already flat, nothing to do
+==== Valhalla Tile Bootstrap ====
+Generating Valhalla config
+Valhalla config generated: /app/data/valhalla/valhalla.json
+GeoJSON already exists, loading from disk
+Features by status:
+  'Closed'                   74
+  'Open'                351,078
+  GeoJSON ready (3.6s)
+Step 1: GeoJSON → OSM (351,152 features)
+  Converting features: 25,000 / 351,152
+  Converting features: 50,000 / 351,152
+  Converting features: 75,000 / 351,152
+  Converting features: 100,000 / 351,152
+  Converting features: 125,000 / 351,152
+  Converting features: 150,000 / 351,152
+  Converting features: 175,000 / 351,152
+  Converting features: 200,000 / 351,152
+  Converting features: 225,000 / 351,152
+  Converting features: 250,000 / 351,152
+  Converting features: 275,000 / 351,152
+  Converting features: 300,000 / 351,152
+  Converting features: 325,000 / 351,152
+  Converting features: 350,000 / 351,152
+  Registry: 680,622 new nodes, 680,622 total
+  Registry: 351,152 ways registered
+  Writing OSM XML (680,622 nodes, 351,152 ways)…
+  OSM written → /app/data/valhalla/network.osm (28.2s)
+Step 2: OSM → PBF
+  PBF written → /app/data/valhalla/network.osm.pbf (3.3s)
+Step 3: Building Valhalla tiles
+✓ Tile directory ready: /app/data/valhalla/tiles
+▶ valhalla_build_tiles -c /app/data/valhalla/valhalla.json /app/data/valhalla/network.osm.pbf
+2026-04-09 19:55:31.770857754 [32;1m[INFO][0m Running valhalla_build_tiles with 10 thread(s).
+2026-04-09 19:55:31.770885045 [32;1m[INFO][0m Start stage = initialize End stage = cleanup
+2026-04-09 19:55:31.772873754 [32;1m[INFO][0m Parsing files for ways: /app/data/valhalla/network.osm.pbf
+2026-04-09 19:55:31.773801670 [32;1m[INFO][0m Parsing ways...
+2026-04-09 19:55:34.142511713 [32;1m[INFO][0m Clarifying and fixing cul-de-sacs...
+2026-04-09 19:55:34.260601297 [32;1m[INFO][0m Added 0 culdesac roundabouts from 0 candidates.
+2026-04-09 19:55:34.260648672 [TIMING] src/mjolnir/pbfgraphparser.cc::clarify_and_fix took 0s
+2026-04-09 19:55:34.260655547 [32;1m[INFO][0m Finished with 351152 routable ways containing 1052383 nodes
+2026-04-09 19:55:34.271403172 [32;1m[INFO][0m Sorting osm access tags by way id...
+2026-04-09 19:55:34.332880713 [32;1m[INFO][0m Finished
+2026-04-09 19:55:34.333059672 [TIMING] src/mjolnir/pbfgraphparser.cc::ParseWays took 2s
+2026-04-09 19:55:34.389796838 [32;1m[INFO][0m Parsing files for relations: /app/data/valhalla/network.osm.pbf
+2026-04-09 19:55:34.390801838 [32;1m[INFO][0m Parsing relations...
+2026-04-09 19:55:34.410719338 [32;1m[INFO][0m Finished with 0 simple turn restrictions
+2026-04-09 19:55:34.410738922 [32;1m[INFO][0m Finished with 0 lane connections
+2026-04-09 19:55:34.410892880 [32;1m[INFO][0m Sorting complex restrictions by from id...
+2026-04-09 19:55:34.411181505 [32;1m[INFO][0m Sorting complex restrictions by to id...
+2026-04-09 19:55:34.411336880 [32;1m[INFO][0m Finished
+2026-04-09 19:55:34.411528838 [TIMING] src/mjolnir/pbfgraphparser.cc::ParseRelations took 0s
+2026-04-09 19:55:34.412728880 [32;1m[INFO][0m Parsing files for nodes: /app/data/valhalla/network.osm.pbf
+2026-04-09 19:55:34.412738838 [32;1m[INFO][0m Sorting osm way node references by node id...
+2026-04-09 19:55:34.693419172 [32;1m[INFO][0m Parsing nodes...
+2026-04-09 19:55:36.375061923 [32;1m[INFO][0m Finished with 680622 nodes contained in routable ways
+2026-04-09 19:55:36.375099048 [32;1m[INFO][0m Sorting osm way node references by way index and node shape index...
+2026-04-09 19:55:36.614770714 [32;1m[INFO][0m Finished: max_osm_id 680622
+2026-04-09 19:55:36.618436006 [32;1m[INFO][0m Number of nodes with refs (exits) = 0
+2026-04-09 19:55:36.618440631 [32;1m[INFO][0m Number of nodes with exit_to = 0
+2026-04-09 19:55:36.618442048 [32;1m[INFO][0m Number of nodes with names = 0
+2026-04-09 19:55:36.618447798 [32;1m[INFO][0m Number of nodes with linguistics = 1
+2026-04-09 19:55:36.618449548 [32;1m[INFO][0m Number of way refs = 0
+2026-04-09 19:55:36.618451089 [32;1m[INFO][0m Number of reverse way refs = 0
+2026-04-09 19:55:36.618453923 [32;1m[INFO][0m Unique Node Strings (names, refs, etc.) = 0
+2026-04-09 19:55:36.618455631 [32;1m[INFO][0m Unique Strings (names, refs, etc.) = 16658
+2026-04-09 19:55:36.618757798 [TIMING] src/mjolnir/pbfgraphparser.cc::ParseNodes took 2s
+2026-04-09 19:55:36.618840089 [32;1m[INFO][0m Sort nodes spatially within each tile using nxn grids where n = 32
+2026-04-09 19:55:36.618871006 [32;1m[INFO][0m Creating graph edges from ways...
+2026-04-09 19:55:36.760447923 [32;1m[INFO][0m Finished with 352026 graph edges
+2026-04-09 19:55:36.798084048 [32;1m[INFO][0m Sorting graph...
+2026-04-09 19:55:37.036328673 [32;1m[INFO][0m Nodes processed. Sorting begin and end nodes by edge.
+2026-04-09 19:55:37.100857465 [32;1m[INFO][0m Sorting begin and end nodes done. Populating edges...
+2026-04-09 19:55:37.119771173 [32;1m[INFO][0m Finished with 331417 graph nodes
+2026-04-09 19:55:37.124377256 [TIMING] src/mjolnir/graphbuilder.cc::BuildEdges took 0s
+2026-04-09 19:55:37.124968006 [32;1m[INFO][0m Writing tile manifest to /app/data/valhalla/tiles/tile_manifest.json
+2026-04-09 19:55:37.124996923 [32;1m[INFO][0m Reclassifying_V2 link graph edges...
+2026-04-09 19:55:37.199217298 [32;1m[INFO][0m Class: 0 exit count = 0
+2026-04-09 19:55:37.199239881 [32;1m[INFO][0m Class: 1 exit count = 0
+2026-04-09 19:55:37.199241631 [32;1m[INFO][0m Class: 2 exit count = 0
+2026-04-09 19:55:37.199242840 [32;1m[INFO][0m Class: 3 exit count = 0
+2026-04-09 19:55:37.199244048 [32;1m[INFO][0m Class: 4 exit count = 0
+2026-04-09 19:55:37.199245215 [32;1m[INFO][0m Class: 5 exit count = 0
+2026-04-09 19:55:37.199246340 [32;1m[INFO][0m Class: 6 exit count = 0
+2026-04-09 19:55:37.199247465 [32;1m[INFO][0m Class: 7 exit count = 0
+2026-04-09 19:55:37.199251215 [32;1m[INFO][0m Finished with 0 link edges reclassified.  Turn channel count = 0
+2026-04-09 19:55:37.200325590 [TIMING] src/mjolnir/linkclassification.cc::ReclassifyLinks took 0s
+2026-04-09 19:55:37.200366256 [32;1m[INFO][0m Reclassifying ferry connection graph edges...
+2026-04-09 19:55:37.265303506 [32;1m[INFO][0m Finished ReclassifyFerryEdges: ferry_endpoint_count = 0, 0 edges reclassified. Failed both directions for 0 connections.
+2026-04-09 19:55:37.266553465 [TIMING] src/mjolnir/ferry_connections.cc::ReclassifyFerryConnections took 0s
+2026-04-09 19:55:37.321938340 [TIMING] src/mjolnir/graphbuilder.cc::ComputeFerrySpeeds took 0s
+2026-04-09 19:55:37.321961506 [32;1m[INFO][0m Building 45 tiles with 10 threads...
+2026-04-09 19:55:37.344440006 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.344471173 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.365871465 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.365901048 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.365898756 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.365899673 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.365914756 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.365917131 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.366914131 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.366931048 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.367281215 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.367294756 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.367531798 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.367544256 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.367684631 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.367738173 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.367745923 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.367745881 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:37.367694423 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:37.367789798 [33;1m[WARN][0m Time zone db /data/valhalla/tz_world.sqlite not found.  Not saving time zone information.
+2026-04-09 19:55:38.119574382 [32;1m[INFO][0m Finished
+2026-04-09 19:55:38.119625715 [TIMING] src/mjolnir/graphbuilder.cc::BuildLocalTiles took 0s
+2026-04-09 19:55:38.119630507 [32;1m[INFO][0m Node Count = 331417
+2026-04-09 19:55:38.119632923 [32;1m[INFO][0m Directed Edge Count = 704050
+2026-04-09 19:55:38.119634715 [32;1m[INFO][0m EdgeInfo Count = 352563
+2026-04-09 19:55:38.119638257 [TIMING] src/mjolnir/graphbuilder.cc::Build took 0s
+2026-04-09 19:55:38.119642548 [32;1m[INFO][0m Enhancing local graph...
+2026-04-09 19:55:38.126566423 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126566465 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126566673 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126623882 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126638215 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126659090 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126662090 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126635548 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126676048 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.126567340 [33;1m[WARN][0m Admin db /data/valhalla/admin.sqlite not found. Not saving admin information.
+2026-04-09 19:55:38.128761798 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.129301715 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.130076923 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.130267632 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.131489382 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.132635298 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.134011298 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.134594423 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.137175465 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:38.138541632 [32;1m[INFO][0m Disabled default speeds assignment from config
+2026-04-09 19:55:39.534698341 [32;1m[INFO][0m Finished with max_density 0.000000
+2026-04-09 19:55:39.534765382 [32;1m[INFO][0m internal intersection = 0
+2026-04-09 19:55:39.534899466 [TIMING] src/mjolnir/graphenhancer.cc::Enhance took 1s
+2026-04-09 19:55:39.534962132 [32;1m[INFO][0m GraphFilter - nothing to filter. Skipping...
+2026-04-09 19:55:39.534967924 [TIMING] src/mjolnir/graphfilter.cc::Filter took 0s
+2026-04-09 19:55:39.535034007 [32;1m[INFO][0m Transit directory not found. Transit will not be added.
+2026-04-09 19:55:39.535095174 [32;1m[INFO][0m HierarchyBuilder
+2026-04-09 19:55:39.609017132 [TIMING] src/mjolnir/hierarchybuilder.cc::CreateNodeAssociations took 0s
+2026-04-09 19:55:39.709153007 [TIMING] src/mjolnir/hierarchybuilder.cc::SortSequences took 0s
+2026-04-09 19:55:40.372439383 [TIMING] src/mjolnir/hierarchybuilder.cc::FormTilesInNewLevel took 0s
+2026-04-09 19:55:40.379573716 [TIMING] src/mjolnir/hierarchybuilder.cc::RemoveUnusedLocalTiles took 0s
+2026-04-09 19:55:40.379624549 [32;1m[INFO][0m Done HierarchyBuilder
+2026-04-09 19:55:40.380057008 [TIMING] src/mjolnir/hierarchybuilder.cc::Build took 0s
+2026-04-09 19:55:40.380545633 [32;1m[INFO][0m Creating shortcuts on level 1
+2026-04-09 19:55:44.789843260 [32;1m[INFO][0m Finished with 0 shortcuts superseding 0 edges, average ~0 edges per shortcut
+2026-04-09 19:55:44.789879718 [32;1m[INFO][0m Creating shortcuts on level 0
+2026-04-09 19:55:45.067298718 [32;1m[INFO][0m Finished with 0 shortcuts superseding 0 edges, average ~0 edges per shortcut
+2026-04-09 19:55:45.067323260 [TIMING] src/mjolnir/shortcutbuilder.cc::Build took 4s
+2026-04-09 19:55:45.072082927 [32;1m[INFO][0m Adding elevation to 45 tiles with 10 threads...
+2026-04-09 19:57:41.118509716 [32;1m[INFO][0m Finished
+2026-04-09 19:57:41.120757633 [TIMING] src/mjolnir/elevationbuilder.cc::Build took 116s
+2026-04-09 19:57:41.127411008 [32;1m[INFO][0m Adding complex turn restrictions at level 2
+2026-04-09 19:57:41.914226925 [TIMING] src/mjolnir/restrictionbuilder.cc::HandleOnlyRestrictionProperties took 0s
+2026-04-09 19:57:41.914386758 [32;1m[INFO][0m --Forward restrictions added: 0
+2026-04-09 19:57:41.914393883 [32;1m[INFO][0m --Reverse restrictions added: 0
+2026-04-09 19:57:41.914761300 [32;1m[INFO][0m Adding complex turn restrictions at level 1
+2026-04-09 19:57:41.926218467 [TIMING] src/mjolnir/restrictionbuilder.cc::HandleOnlyRestrictionProperties took 0s
+2026-04-09 19:57:41.926242758 [32;1m[INFO][0m --Forward restrictions added: 0
+2026-04-09 19:57:41.926245342 [32;1m[INFO][0m --Reverse restrictions added: 0
+2026-04-09 19:57:41.926387175 [32;1m[INFO][0m Adding complex turn restrictions at level 0
+2026-04-09 19:57:41.932822925 [TIMING] src/mjolnir/restrictionbuilder.cc::HandleOnlyRestrictionProperties took 0s
+2026-04-09 19:57:41.932850258 [32;1m[INFO][0m --Forward restrictions added: 0
+2026-04-09 19:57:41.932852175 [32;1m[INFO][0m --Reverse restrictions added: 0
+2026-04-09 19:57:41.932856925 [32;1m[INFO][0m Finished
+2026-04-09 19:57:41.932867258 [TIMING] src/mjolnir/restrictionbuilder.cc::Build took 0s
+2026-04-09 19:57:41.932889383 [32;1m[INFO][0m Validating, finishing and binning tiles...
+2026-04-09 19:57:42.549539550 [32;1m[INFO][0m Finished
+2026-04-09 19:57:42.549563009 [32;1m[INFO][0m Binning inter-tile edges...
+2026-04-09 19:57:42.601511134 [32;1m[INFO][0m Finished
+2026-04-09 19:57:42.601600759 [33;1m[WARN][0m Possible duplicates at level: 0 = 0
+2026-04-09 19:57:42.601604759 [33;1m[WARN][0m Possible duplicates at level: 1 = 0
+2026-04-09 19:57:42.601606759 [33;1m[WARN][0m Possible duplicates at level: 2 = 0
+2026-04-09 19:57:42.601641842 [TIMING] src/mjolnir/graphvalidator.cc::Validate took 0s
+2026-04-09 19:57:42.601661134 [32;1m[INFO][0m Cleaning up temporary *.bin files within /app/data/valhalla/tiles/
+2026-04-09 19:57:42.614862675 [TIMING] src/mjolnir/osmdata.cc::cleanup_temp_files took 0s
+2026-04-09 19:57:42.618617759 [TIMING] src/mjolnir/util.cc::build_tile_set took 130s
+[INFO] Running /opt/venv/lib/python3.12/site-packages/valhalla/bin/valhalla_build_tiles with args: ['-c', '/app/data/valhalla/valhalla.json', '/app/data/valhalla/network.osm.pbf']...
+✓ Tiles built successfully
+  Tiles built (131.0s)
+==== Bootstrap complete (166.1s total) ====
+Starting Valhalla service...
+2026-04-09 19:57:43.552361509 [33;1m[WARN][0m Incomplete config for hierarchy limits found for costmatrix. Falling back to defaults
+2026-04-09 19:57:43.552473343 [33;1m[WARN][0m Incomplete config for hierarchy limits found for unidirectional_astar. Falling back to defaults
+2026-04-09 19:57:43.552479009 [33;1m[WARN][0m Incomplete config for hierarchy limits found for bidirectional_astar. Falling back to defaults
+0 2026/04/09 19:57:48.069809 GET /status HTTP/1.1
+2026-04-09 19:57:48.070071511 [32;1m[INFO][0m Got Loki Request 0
+2026-04-09 19:57:48.070844803 [32;1m[INFO][0m Got Thor Request 0
+2026-04-09 19:57:48.071368845 [32;1m[INFO][0m Got Odin Request 0
+0 2026/04/09 19:57:48.071642 200 356
+1 2026/04/09 19:58:18.135352 GET /status HTTP/1.1
+2026-04-09 19:58:18.135683428 [32;1m[INFO][0m Got Loki Request 1
+2026-04-09 19:58:18.136573970 [32;1m[INFO][0m Got Thor Request 1
+2026-04-09 19:58:18.136973928 [32;1m[INFO][0m Got Odin Request 1
+1 2026/04/09 19:58:18.137215 200 356
