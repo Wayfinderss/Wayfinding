@@ -79,14 +79,16 @@ services:
     volumes:
       - ./spcwayfinding:/app
       - /app/node_modules
-    # remove the environment block entirely
     ports:
       - "5173:5173"
     depends_on:
       api:
         condition: service_healthy
+<<<<<<< HEAD
     # ports:
     #   - "5173:5173"
+=======
+>>>>>>> 9e6ad7c2e1f1fc23329d073f1116050281249451
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
 volumes:

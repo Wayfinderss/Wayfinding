@@ -39,7 +39,7 @@ def tags_from_properties(attrs: dict) -> dict:
     if not attrs:
         return {}
 
-    attrs = {k: (v.lower() if isinstance(v, str) else v) for k, v in attrs.items()}
+    props = {k: (v.lower() if isinstance(v, str) else v) for k, v in attrs.items()}
 
     tags = {}
     type_name = attrs.get("Type_Name") or ""
