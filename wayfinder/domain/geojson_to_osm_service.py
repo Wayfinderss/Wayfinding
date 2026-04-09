@@ -92,13 +92,13 @@ def tags_from_properties(attrs: dict) -> dict:
     if grade:
         tags["incline"] = f"{grade}%"
 
-            # accessibility hint
-            if grade <= 5:
-                tags["wheelchair"] = "yes"
-            elif grade <= 8:
-                tags["wheelchair"] = "limited"
-            else:
-                tags["wheelchair"] = "no"
+        # accessibility hint
+        if grade <= 5:
+            tags["wheelchair"] = "yes"
+        elif grade <= 8:
+            tags["wheelchair"] = "limited"
+        else:
+            tags["wheelchair"] = "no"
 
         # ----- Road name -----
         road = props.get("RoadName")
