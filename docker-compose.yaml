@@ -51,7 +51,10 @@ services:
     environment:
       PYTHONPATH: /app
       VALHALLA_URL: http://valhalla:8002
-      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}  # ← add this
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      DB_BACKEND: postgres
+      DB_CONNECTION_STRING: host=postgres port=5432 dbname=wayfinding_logger user=postgres password=secret
     volumes:
       - ./data/valhalla:/app/data/valhalla
     depends_on:
@@ -62,11 +65,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/valhalla/health', timeout=2).read()\""
-        ]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/valhalla/health"]
       interval: 10s
       timeout: 3s
       retries: 40

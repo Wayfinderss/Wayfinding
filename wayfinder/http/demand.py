@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 
 from wayfinder.application.invalid_route_pipeline import InvalidRoutePipeline
+from wayfinder.http.dependencies import require_admin
 
-router = APIRouter(prefix="/demand", tags=["demand"])
+router = APIRouter(prefix="/demand", tags=["demand"], dependencies=[Depends(require_admin)])
+
+import os
 
 pipeline = InvalidRoutePipeline(
     backend="postgres",
-    connection_string="dbname=walkway_demand",
+    connection_string=os.getenv("DB_CONNECTION_STRING"),
     auto_create_schema=False,
     geohash_precision=9,
 )

@@ -1,6 +1,6 @@
 {
   "additional_data": {
-    "elevation": "/data/valhalla/elevation/"
+    "elevation": "/app/data/valhalla/elevation_data"
   },
   "httpd": {
     "service": {

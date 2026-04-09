@@ -9,6 +9,9 @@ class Bootstrapper:
     def bootstrap(self, backend: str, connection_string: str) -> None:
         Bootstrapper.bootstrap_db(self, backend, connection_string)
 
+    def object_id_for_way(self, way_id: int) -> int:
+        return way_id - 1_000_000_000
+
     @staticmethod
     def _parse_postgres_dsn_kv(dsn: str) -> Dict[str, str]:
         parts: Dict[str, str] = {}
