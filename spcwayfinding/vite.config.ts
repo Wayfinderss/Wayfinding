@@ -16,7 +16,11 @@ export default defineConfig({
       '/ways': {
         target: 'http://api:8000',
         changeOrigin: true,
-      }
+      },
+      '/demand': {
+        target: 'http://api:8000',
+        changeOrigin: true,
+      },
     }
   }
 })
