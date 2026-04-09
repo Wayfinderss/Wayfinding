@@ -139,6 +139,8 @@ interface GeocodeResult {
     .input-wrapper {
       flex: 1;
       position: relative;
+      min-width: 0;
+      width: 100%;
     }
 
     .dot-col {
@@ -159,6 +161,7 @@ interface GeocodeResult {
     .dot.dest { background: #ff5c5c; }
   
     .route-input {
+      width: 100%;
       flex: 1;
       background: #fcfcfc;
       border: 1px solid #111;

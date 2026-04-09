@@ -7,7 +7,7 @@ type AccessibilityProfile = "wheelchair" | "cane" | "custom";
 //  Types
 // ─────────────────────────────────────────────
 type PanelKey = "legend" | "layer" | null;
- 
+
 // ─────────────────────────────────────────────
 //  Static data
 // ─────────────────────────────────────────────
@@ -32,7 +32,7 @@ const LEGEND_ITEMS = [
   },
 ];
 
-// Profile presets — fake numbers for now need backend 
+// Profile presets — fake numbers for now need backend
 const PROFILE_PRESETS: Record<
   "wheelchair" | "cane",
   { avoidStaircases: boolean; maxIncline: number }
@@ -45,16 +45,16 @@ const LAYERS = [
   {
     id: "elevation",
     label: "Elevation Profile",
-    desc: "Gradient shading — useful for wheelchair users (still need to link this to jack's elevation)", 
+    desc: "Gradient shading — useful for wheelchair users (still need to link this to jack's elevation)",
     icon: "⛰",
     enabled: false,
     badge: null,
     badgeColor: "",
   },
 ];
- 
+
 // ─────────────────────────────────────────────
-//  Icons 
+//  Icons
 // ─────────────────────────────────────────────
 const IconLegend = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -64,7 +64,7 @@ const IconLegend = () => (
     <line x1="11" y1="14" x2="16" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
- 
+
 const IconLayer = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 2L18 6.5L10 11L2 6.5L10 2Z" fill="currentColor" opacity="0.9" />
@@ -72,7 +72,7 @@ const IconLayer = () => (
     <path d="M2 13.5L10 18L18 13.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
   </svg>
 );
- 
+
 const IconBasemap = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.9" />
@@ -81,7 +81,7 @@ const IconBasemap = () => (
     <rect x="11" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.9" />
   </svg>
 );
- 
+
 const IconClose = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
     <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -99,7 +99,7 @@ const IconWheelchair = ({ size = 22 }: { size?: number }) => (
     <path d="M13.5 13H16.5a1 1 0 011 1v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
   </svg>
 );
- 
+
 // Cane / walking aid icon
 const IconCane = ({ size = 22 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -113,7 +113,7 @@ const IconCane = ({ size = 22 }: { size?: number }) => (
     <path d="M15.5 19 Q16 20 17 19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
   </svg>
 );
- 
+
 // Custom profile icon (sliders / person)
 const IconCustomProfile = ({ size = 22 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -132,11 +132,11 @@ const IconCustomProfile = ({ size = 22 }: { size?: number }) => (
 //  Props
 // ─────────────────────────────────────────────
 interface RightSidebarProps {
-    onResetBasemap?: () => void;
-    showElevation: boolean;
-    onToggleElevation: (val: boolean) => void;
-  }
-  
+  onResetBasemap?: () => void;
+  showElevation: boolean;
+  onToggleElevation: (val: boolean) => void;
+}
+
 
 // ─────────────────────────────────────────────
 //  Styles
@@ -545,8 +545,31 @@ const styles = `
     gap: 4px;
     margin-top: -2px;
   }
+
+
+  .apply-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #6e94f5;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+
+  .apply-btn:hover { background: #4b77f0; }
+  .apply-btn:active { transform: scale(0.98); }
+
+  .apply-btn.applied {
+    background: #22c55e;
+  }
 `;
- 
+
 // ─────────────────────────────────────────────
 //  Sub-panels
 // ─────────────────────────────────────────────
@@ -556,7 +579,7 @@ function LegendPanel() {
       <div className="a11y-banner">
         <span className="a11y-banner-icon">♿</span>
         <span>
-          <strong>Accessibility data</strong> "insert message of where our data is linked from (SPC)"
+          <strong>Accessibility data:</strong> Sidewalk data provided by SPC
         </span>
       </div>
       {LEGEND_ITEMS.map((item) => (
@@ -576,208 +599,222 @@ function LegendPanel() {
     </div>
   );
 }
- 
+
 function LayerPanel({
-    showElevation,
-    onToggleElevation,
-  }: {
-    showElevation: boolean;
-    onToggleElevation: (val: boolean) => void;
-  }) {
-    // ── Accessibility profile state ──
-    const [profile, setProfile] = useState<AccessibilityProfile>("custom");
-    const [avoidStaircases, setAvoidStaircases] = useState(false);
-    const [maxIncline, setMaxIncline] = useState(15);
-   
-    // ── Other layers ──
-    const [layers, setLayers] = useState(LAYERS);
-   
-    const selectProfile = (p: AccessibilityProfile) => {
-      setProfile(p);
-      if (p !== "custom") {
-        const preset = PROFILE_PRESETS[p];
-        setAvoidStaircases(preset.avoidStaircases);
-        setMaxIncline(preset.maxIncline);
-      }
-    };
-   
-    const isLocked = profile !== "custom";
-   
-    const handleStaircaseToggle = () => {
-      if (isLocked) return;
-      setAvoidStaircases((v) => !v);
-    };
-   
-    const handleInclineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (isLocked) return;
-      setMaxIncline(Number(e.target.value));
-    };
-   
-    const toggleLayer = (id: string) => {
-      if (id === "elevation") {
-        onToggleElevation(!showElevation);
-      } else {
-        setLayers((prev) =>
-          prev.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
-        );
-      }
-    };
-   
-    const layersWithElevation = layers.map((l) =>
-      l.id === "elevation" ? { ...l, enabled: showElevation } : l
-    );
-   
-    return (
-      <div className="panel-body">
-        <div className="a11y-banner">
-          <span className="a11y-banner-icon">ℹ️</span>
-          <span>
-            Toggle map overlays to show or hide features. Accessibility layers are
-            (fill in later depending on backend).
-          </span>
-        </div>
-   
-        {/* ── Accessibility section ── */}
-        <div className="layer-section-label">Accessibility</div>
-   
-        {/* Profile picker */}
-        <div className="profile-picker">
-          <button
-            className={`profile-btn${profile === "wheelchair" ? " selected" : ""}`}
-            onClick={() => selectProfile("wheelchair")}
-            aria-label="Wheelchair profile"
-            title="Wheelchair — avoids stairs, max 5% incline"
-          >
-            <IconWheelchair size={24} />
-            <span className="profile-btn-label">Wheelchair</span>
-          </button>
-   
-          <button
-            className={`profile-btn${profile === "cane" ? " selected" : ""}`}
-            onClick={() => selectProfile("cane")}
-            aria-label="Cane profile"
-            title="Cane — avoids stairs, max 10% incline"
-          >
-            <IconCane size={24} />
-            <span className="profile-btn-label">Cane</span>
-          </button>
-   
-          <button
-            className={`profile-btn${profile === "custom" ? " selected" : ""}`}
-            onClick={() => selectProfile("custom")}
-            aria-label="Custom profile"
-            title="Custom — set your own preferences"
-          >
-            <IconCustomProfile size={24} />
-            <span className="profile-btn-label">Custom</span>
-          </button>
-        </div>
-   
-        {/* Staircase + incline controls */}
-        <div className="a11y-controls">
-          {/* Staircase toggle */}
-          <div className="a11y-control-row">
-            <div>
-              <div className="a11y-control-label">Avoid Staircases</div>
-              <div className="a11y-control-sublabel">Prefer ramps & level paths</div>
-            </div>
-            <button
-              className={`toggle${avoidStaircases ? " on" : ""}`}
-              onClick={handleStaircaseToggle}
-              aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
-              style={isLocked ? { opacity: 0.65, cursor: "not-allowed" } : {}}
-            >
-              <div className="toggle-thumb" />
-            </button>
-          </div>
-   
-          {/* Incline slider */}
-          <div className="incline-row">
-            <div className="incline-header">
-              <div>
-                <div className="a11y-control-label">Max Incline</div>
-                <div className="a11y-control-sublabel">Route grade limit</div>
-              </div>
-              <span className="incline-value">{maxIncline}%</span>
-            </div>
-            <input
-              type="range"
-              className="incline-slider"
-              min={0}
-              max={30}
-              step={1}
-              value={maxIncline}
-              onChange={handleInclineChange}
-              disabled={isLocked}
-              aria-label={`Max incline: ${maxIncline}%`}
-            />
-            <div className="incline-ticks">
-              <span>0%</span>
-              <span>5%</span>
-              <span>10%</span>
-              <span>15%</span>
-              <span>20%</span>
-              <span>25%</span>
-              <span>30%</span>
-            </div>
-          </div>
-   
-          {isLocked && (
-            <div className="locked-note">
-              <span>🔒</span>
-              <span>
-                Preset values applied — switch to{" "}
-                <strong
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                  onClick={() => selectProfile("custom")}
-                >
-                  Custom
-                </strong>{" "}
-                to edit
-              </span>
-            </div>
-          )}
-        </div>
-   
-        {/* ── Other layers ── */}
-        <div className="layer-section-label" style={{ marginTop: 8 }}>
-          Other Layers
-        </div>
-        {layersWithElevation.map((layer) => (
-          <div
-            key={layer.id}
-            className={`layer-item${layer.enabled ? " active" : ""}`}
-            onClick={() => toggleLayer(layer.id)}
-          >
-            <span className="layer-icon">{layer.icon}</span>
-            <div className="layer-text">
-              <div className="layer-label-row">
-                <span className="layer-name">{layer.label}</span>
-                {layer.badge && (
-                  <span className="badge" style={{ background: layer.badgeColor }}>
-                    {layer.badge}
-                  </span>
-                )}
-              </div>
-              <div className="layer-desc">{layer.desc}</div>
-            </div>
-            <button
-              className={`toggle${layer.enabled ? " on" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleLayer(layer.id);
-              }}
-              aria-label={`${layer.enabled ? "Disable" : "Enable"} ${layer.label}`}
-            >
-              <div className="toggle-thumb" />
-            </button>
-          </div>
-        ))}
+  showElevation,
+  onToggleElevation,
+}: {
+  showElevation: boolean;
+  onToggleElevation: (val: boolean) => void;
+}) {
+  // ── Accessibility profile state ──
+  const [profile, setProfile] = useState<AccessibilityProfile>("custom");
+  const [avoidStaircases, setAvoidStaircases] = useState(false);
+  const [maxIncline, setMaxIncline] = useState(15);
+
+
+  // ── Applied state (what's going to be sent to backend) ──
+  const [appliedSettings, setAppliedSettings] = useState<{
+    profile: AccessibilityProfile;
+    avoidStaircases: boolean;
+    maxIncline: number;
+  } | null>(null);
+
+  const [justApplied, setJustApplied] = useState(false);
+
+  // ── Other layers ──
+  const [layers, setLayers] = useState(LAYERS);
+
+  const selectProfile = (p: AccessibilityProfile) => {
+    setProfile(p);
+    if (p !== "custom") {
+      const preset = PROFILE_PRESETS[p];
+      setAvoidStaircases(preset.avoidStaircases);
+      setMaxIncline(preset.maxIncline);
+    }
+  };
+
+
+  const handleApply = () => {
+    const settings = { profile, avoidStaircases, maxIncline };
+    setAppliedSettings(settings);
+
+    // TODO: replace with real API call e.g:
+    // await fetch('/api/accessibility-profile', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(settings),
+    // });
+
+    console.log('Applying accessibility settings:', settings);
+
+    setJustApplied(true);
+    setTimeout(() => setJustApplied(false), 1500);
+  };
+
+  const isDirty =
+    !appliedSettings ||
+    appliedSettings.profile !== profile ||
+    appliedSettings.avoidStaircases !== avoidStaircases ||
+    appliedSettings.maxIncline !== maxIncline;
+
+  const toggleLayer = (id: string) => {
+    if (id === "elevation") {
+      onToggleElevation(!showElevation);
+    } else {
+      setLayers((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
+      );
+    }
+  };
+
+  const layersWithElevation = layers.map((l) =>
+    l.id === "elevation" ? { ...l, enabled: showElevation } : l
+  );
+
+  return (
+    <div className="panel-body">
+      <div className="a11y-banner">
+        <span className="a11y-banner-icon">ℹ️</span>
+        <span>
+          Adjust settings to apply to route
+        </span>
       </div>
-    );
-  }
-   
- 
+
+      {/* ── Accessibility section ── */}
+      <div className="layer-section-label">Accessibility</div>
+
+      {/* Profile picker */}
+      <div className="profile-picker">
+        <button
+          className={`profile-btn${profile === "wheelchair" ? " selected" : ""}`}
+          onClick={() => selectProfile("wheelchair")}
+          aria-label="Wheelchair profile"
+          title="Wheelchair — avoids stairs, max 5% incline"
+        >
+          <IconWheelchair size={24} />
+          <span className="profile-btn-label">Wheelchair</span>
+        </button>
+
+        <button
+          className={`profile-btn${profile === "cane" ? " selected" : ""}`}
+          onClick={() => selectProfile("cane")}
+          aria-label="Cane profile"
+          title="Cane — avoids stairs, max 10% incline"
+        >
+          <IconCane size={24} />
+          <span className="profile-btn-label">Cane</span>
+        </button>
+
+        <button
+          className={`profile-btn${profile === "custom" ? " selected" : ""}`}
+          onClick={() => selectProfile("custom")}
+          aria-label="Custom profile"
+          title="Custom — set your own preferences"
+        >
+          <IconCustomProfile size={24} />
+          <span className="profile-btn-label">Custom</span>
+        </button>
+      </div>
+
+      {/* Staircase + incline controls */}
+      <div className="a11y-controls">
+        {/* Staircase toggle */}
+        <div className="a11y-control-row">
+          <div>
+            <div className="a11y-control-label">Avoid Staircases</div>
+            <div className="a11y-control-sublabel">Prefer ramps & level paths</div>
+          </div>
+          <button
+            className={`toggle${avoidStaircases ? " on" : ""}`}
+            onClick={() => setAvoidStaircases((v) => !v)} aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+          >
+            <div className="toggle-thumb" />
+          </button>
+        </div>
+
+        {/* Incline slider */}
+        <div className="incline-row">
+          <div className="incline-header">
+            <div>
+              <div className="a11y-control-label">Max Incline</div>
+              <div className="a11y-control-sublabel">Route grade limit</div>
+            </div>
+            <span className="incline-value">{maxIncline}%</span>
+          </div>
+          <input
+            type="range"
+            className="incline-slider"
+            min={0}
+            max={30}
+            step={1}
+            value={maxIncline}
+            onChange={(e) => setMaxIncline(Number(e.target.value))}
+            aria-label={`Max incline: ${maxIncline}%`}
+          />
+          <div className="incline-ticks">
+            <span>0%</span>
+            <span>5%</span>
+            <span>10%</span>
+            <span>15%</span>
+            <span>20%</span>
+            <span>25%</span>
+            <span>30%</span>
+          </div>
+        </div>
+
+
+      </div>
+
+      {/* Apply button */}
+      <button
+        className={`apply-btn${justApplied ? " applied" : ""}`}
+        onClick={handleApply}
+        disabled={!isDirty && !justApplied}
+        style={!isDirty && !justApplied ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+      >
+        {justApplied ? "✓ Applied" : isDirty ? "Apply Settings" : "Settings Applied"}
+      </button>
+
+      {/* ── Other layers ── */}
+      <div className="layer-section-label" style={{ marginTop: 8 }}>
+        Other Layers
+      </div>
+      {layersWithElevation.map((layer) => (
+        <div
+          key={layer.id}
+          className={`layer-item${layer.enabled ? " active" : ""}`}
+          onClick={() => toggleLayer(layer.id)}
+        >
+          <span className="layer-icon">{layer.icon}</span>
+          <div className="layer-text">
+            <div className="layer-label-row">
+              <span className="layer-name">{layer.label}</span>
+              {layer.badge && (
+                <span className="badge" style={{ background: layer.badgeColor }}>
+                  {layer.badge}
+                </span>
+              )}
+            </div>
+            <div className="layer-desc">{layer.desc}</div>
+          </div>
+          <button
+            className={`toggle${layer.enabled ? " on" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleLayer(layer.id);
+            }}
+            aria-label={`${layer.enabled ? "Disable" : "Enable"} ${layer.label}`}
+          >
+            <div className="toggle-thumb" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 // ─────────────────────────────────────────────
 //  Main export
 // ─────────────────────────────────────────────
@@ -794,27 +831,27 @@ const PANEL_META: Record<
     subtitle: "Toggle map overlays",
   },
 };
- 
+
 export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation }: RightSidebarProps) {
-    const [active, setActive] = useState<PanelKey>(null);
-    const [resetFired, setResetFired] = useState(false);  
-   
-    const open = (key: Exclude<PanelKey, null>) =>
-      setActive((prev) => (prev === key ? null : key));
-   
-    const handleReset = () => {
-      setResetFired(true);
-      setTimeout(() => setResetFired(false), 400);
-      onResetBasemap?.();
-    };
-   
-    const meta = active ? PANEL_META[active] : null;
-   
-  
+  const [active, setActive] = useState<PanelKey>(null);
+  const [resetFired, setResetFired] = useState(false);
+
+  const open = (key: Exclude<PanelKey, null>) =>
+    setActive((prev) => (prev === key ? null : key));
+
+  const handleReset = () => {
+    setResetFired(true);
+    setTimeout(() => setResetFired(false), 400);
+    onResetBasemap?.();
+  };
+
+  const meta = active ? PANEL_META[active] : null;
+
+
   return (
     <>
       <style>{styles}</style>
- 
+
       {/* Sliding panel — rendered before the rail so it grows leftward */}
       <div className={`right-panel${active ? " open" : ""}`} role="complementary" aria-label={meta?.title ?? "Map options"}>
         {active && (
@@ -832,18 +869,18 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
                 <IconClose />
               </button>
             </div>
- 
+
             {active === "legend" && <LegendPanel />}
             {active === "layer" && (
-            <LayerPanel
+              <LayerPanel
                 showElevation={showElevation}
                 onToggleElevation={onToggleElevation}
-            />
-            )}          
-            </div>
+              />
+            )}
+          </div>
         )}
       </div>
- 
+
       {/* Icon rail */}
       <nav className="right-rail" aria-label="Map tools">
         <button
@@ -855,9 +892,9 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
           <IconLegend />
           <span className="rail-btn-label">Legend</span>
         </button>
- 
+
         <div className="rail-divider" />
- 
+
         <button
           className={`rail-btn${active === "layer" ? " active" : ""}`}
           onClick={() => open("layer")}
@@ -867,9 +904,9 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
           <IconLayer />
           <span className="rail-btn-label">Layers</span>
         </button>
- 
+
         <div className="rail-divider" />
- 
+
         {/* Basemap — direct reset, no panel */}
         <button
           className={`rail-btn reset${resetFired ? " fired" : ""}`}
