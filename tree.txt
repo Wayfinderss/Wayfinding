@@ -8,16 +8,6 @@
 │   └── valhalla
 │       ├── custom_sidewalks.geojson
 │       ├── elevation_data
-│       │   ├── N39
-│       │   │   ├── N39W080.hgt
-│       │   │   └── N39W081.hgt
-│       │   ├── N40
-│       │   │   ├── N40W079.hgt
-│       │   │   ├── N40W080.hgt
-│       │   │   └── N40W081.hgt
-│       │   └── N41
-│       │       ├── N41W080.hgt
-│       │       └── N41W081.hgt
 │       ├── network.osm
 │       ├── network.osm.pbf
 │       ├── node_registry.db
@@ -96,7 +86,8 @@
 ├── requirements.txt
 ├── scripts
 │   ├── bootstrap_tiles.py
-│   └── bootstrap_tiles.sh
+│   ├── bootstrap_tiles.sh
+│   └── flatten_elevation.py
 ├── spcwayfinding
 │   ├── README.md
 │   ├── eslint.config.js
@@ -4399,6 +4390,14 @@
 │   │   │   ├── LICENSE
 │   │   │   ├── README.md
 │   │   │   ├── index.js
+│   │   │   └── package.json
+│   │   ├── cookie
+│   │   │   ├── LICENSE
+│   │   │   ├── README.md
+│   │   │   ├── dist
+│   │   │   │   ├── index.d.ts
+│   │   │   │   ├── index.js
+│   │   │   │   └── index.js.map
 │   │   │   └── package.json
 │   │   ├── cross-spawn
 │   │   │   ├── LICENSE
@@ -9438,6 +9437,97 @@
 │   │   │   │   └── react-refresh-runtime.production.js
 │   │   │   ├── package.json
 │   │   │   └── runtime.js
+│   │   ├── react-router
+│   │   │   ├── CHANGELOG.md
+│   │   │   ├── LICENSE.md
+│   │   │   ├── README.md
+│   │   │   ├── dist
+│   │   │   │   ├── development
+│   │   │   │   │   ├── browser-C9Ar1yxG.d.ts
+│   │   │   │   │   ├── browser-vtIR1Kpe.d.mts
+│   │   │   │   │   ├── chunk-2UH5WJXA.mjs
+│   │   │   │   │   ├── chunk-IK6APEEG.js
+│   │   │   │   │   ├── chunk-NXTEWSJO.js
+│   │   │   │   │   ├── chunk-QFMPRPBF.mjs
+│   │   │   │   │   ├── chunk-WAVMRYR2.js
+│   │   │   │   │   ├── context-phCt_zmH.d.mts
+│   │   │   │   │   ├── dom-export.d.mts
+│   │   │   │   │   ├── dom-export.d.ts
+│   │   │   │   │   ├── dom-export.js
+│   │   │   │   │   ├── dom-export.mjs
+│   │   │   │   │   ├── index-react-server-client-BwWaHAr3.d.mts
+│   │   │   │   │   ├── index-react-server-client-luDbagNU.d.ts
+│   │   │   │   │   ├── index-react-server-client.d.mts
+│   │   │   │   │   ├── index-react-server-client.d.ts
+│   │   │   │   │   ├── index-react-server-client.js
+│   │   │   │   │   ├── index-react-server-client.mjs
+│   │   │   │   │   ├── index-react-server.d.mts
+│   │   │   │   │   ├── index-react-server.d.ts
+│   │   │   │   │   ├── index-react-server.js
+│   │   │   │   │   ├── index-react-server.mjs
+│   │   │   │   │   ├── index.d.mts
+│   │   │   │   │   ├── index.d.ts
+│   │   │   │   │   ├── index.js
+│   │   │   │   │   ├── index.mjs
+│   │   │   │   │   ├── instrumentation-BYr6ff5D.d.ts
+│   │   │   │   │   ├── lib
+│   │   │   │   │   │   └── types
+│   │   │   │   │   │       ├── internal.d.mts
+│   │   │   │   │   │       ├── internal.d.ts
+│   │   │   │   │   │       ├── internal.js
+│   │   │   │   │   │       └── internal.mjs
+│   │   │   │   │   ├── register-CTxsJBKQ.d.mts
+│   │   │   │   │   ├── register-CkcGwv27.d.ts
+│   │   │   │   │   ├── routeModules-BRrCYrSL.d.mts
+│   │   │   │   │   └── routeModules-CA7kSxJJ.d.ts
+│   │   │   │   └── production
+│   │   │   │       ├── browser-C9Ar1yxG.d.ts
+│   │   │   │       ├── browser-vtIR1Kpe.d.mts
+│   │   │   │       ├── chunk-355DUZMC.js
+│   │   │   │       ├── chunk-4TJ7T2OQ.js
+│   │   │   │       ├── chunk-FPT5DLVJ.js
+│   │   │   │       ├── chunk-HZQGQD2X.mjs
+│   │   │   │       ├── chunk-X5LK27NZ.mjs
+│   │   │   │       ├── context-phCt_zmH.d.mts
+│   │   │   │       ├── dom-export.d.mts
+│   │   │   │       ├── dom-export.d.ts
+│   │   │   │       ├── dom-export.js
+│   │   │   │       ├── dom-export.mjs
+│   │   │   │       ├── index-react-server-client-BwWaHAr3.d.mts
+│   │   │   │       ├── index-react-server-client-luDbagNU.d.ts
+│   │   │   │       ├── index-react-server-client.d.mts
+│   │   │   │       ├── index-react-server-client.d.ts
+│   │   │   │       ├── index-react-server-client.js
+│   │   │   │       ├── index-react-server-client.mjs
+│   │   │   │       ├── index-react-server.d.mts
+│   │   │   │       ├── index-react-server.d.ts
+│   │   │   │       ├── index-react-server.js
+│   │   │   │       ├── index-react-server.mjs
+│   │   │   │       ├── index.d.mts
+│   │   │   │       ├── index.d.ts
+│   │   │   │       ├── index.js
+│   │   │   │       ├── index.mjs
+│   │   │   │       ├── instrumentation-BYr6ff5D.d.ts
+│   │   │   │       ├── lib
+│   │   │   │       │   └── types
+│   │   │   │       │       ├── internal.d.mts
+│   │   │   │       │       ├── internal.d.ts
+│   │   │   │       │       ├── internal.js
+│   │   │   │       │       └── internal.mjs
+│   │   │   │       ├── register-CTxsJBKQ.d.mts
+│   │   │   │       ├── register-CkcGwv27.d.ts
+│   │   │   │       ├── routeModules-BRrCYrSL.d.mts
+│   │   │   │       └── routeModules-CA7kSxJJ.d.ts
+│   │   │   └── package.json
+│   │   ├── react-router-dom
+│   │   │   ├── LICENSE.md
+│   │   │   ├── README.md
+│   │   │   ├── dist
+│   │   │   │   ├── index.d.mts
+│   │   │   │   ├── index.d.ts
+│   │   │   │   ├── index.js
+│   │   │   │   └── index.mjs
+│   │   │   └── package.json
 │   │   ├── read-pkg
 │   │   │   ├── index.d.ts
 │   │   │   ├── index.js
@@ -10701,6 +10791,12 @@
 │   │   │   ├── package.json
 │   │   │   ├── range.bnf
 │   │   │   └── semver.js
+│   │   ├── set-cookie-parser
+│   │   │   ├── LICENSE
+│   │   │   ├── README.md
+│   │   │   ├── lib
+│   │   │   │   └── set-cookie.js
+│   │   │   └── package.json
 │   │   ├── shebang-command
 │   │   │   ├── index.js
 │   │   │   ├── license
@@ -12333,6 +12429,7 @@
 │   ├── public
 │   │   └── vite.svg
 │   ├── src
+│   │   ├── Admin.tsx
 │   │   ├── App.css
 │   │   ├── App.tsx
 │   │   ├── Controlpanel.tsx
@@ -12395,4 +12492,4 @@
     │   └── tile_reloading.py
     └── main.py
 
-1058 directories, 11338 files
+1069 directories, 11424 files
