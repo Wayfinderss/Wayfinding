@@ -12,6 +12,10 @@ export default defineConfig({
       '/valhalla': {
         target: 'http://api:8000',
         changeOrigin: true,
+      },
+      '/ways': {
+        target: 'http://api:8000',
+        changeOrigin: true,
       }
     }
   }
