@@ -1,4 +1,4 @@
-FROM ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+FROM ghcr.io/valhalla/valhalla-dev:latest
 
 USER root
 
@@ -9,20 +9,51 @@ RUN apt-get update \
         python3 \
         python3-pip \
         python3-venv \
+        python3-dev \
         osmium-tool \
         gdal-bin \
         libgdal-dev \
         python3-gdal \
         git \
+        cmake \
+        build-essential \
+        pkg-config \
+        protobuf-compiler \
+        libprotobuf-dev \
+        libgeos-dev \
+        libgeos++-dev \
+        libsqlite3-dev \
+        libspatialite-dev \
+        libproj-dev \
+        liblua5.3-dev \
+        libluabind-dev \
+        libzstd-dev \
+        libluajit-5.1-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# --- Clone Valhalla source, swap file, recompile ---
+COPY valhalla_custom/pedestriancost.cc /tmp/pedestriancost.cc
+
+# Layer 1: clone + cmake configure (cached unless commit hash changes)
+RUN git clone https://github.com/valhalla/valhalla.git /valhalla-src \
+    && cd /valhalla-src \
+    && git checkout 02ebe2dd8 \
+    && git submodule update --init --recursive \
+    && mkdir build && cd build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=OFF
+
+# Layer 2: swap file + compile (only reruns when pedestriancost.cc changes)
+COPY valhalla_custom/pedestriancost.cc /valhalla-src/src/sif/pedestriancost.cc
+
+RUN cd /valhalla-src/build \
+    && make -j$(nproc) all \
+    && make install
+
+# --- Rest of your existing setup ---
 COPY . /app
 
 RUN pip install uv --break-system-packages
 
-# Pin to system python3 so uv doesn't download its own CPython.
-# --system-site-packages makes python3-gdal (from apt) visible inside the venv.
-# numpy<2 required for shapely compatibility in this container.
 RUN uv venv /opt/venv --python $(which python3) --system-site-packages \
     && uv pip install --python /opt/venv/bin/python \
         -r requirements.txt \
