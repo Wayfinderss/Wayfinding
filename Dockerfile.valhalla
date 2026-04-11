@@ -29,7 +29,19 @@ RUN apt-get update \
         libluabind-dev \
         libzstd-dev \
         libluajit-5.1-dev \
+        libczmq-dev \
+        libzmq3-dev \
+        libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# --- Build prime_server (required for valhalla_service HTTP server) ---
+RUN git clone https://github.com/kevinkreiser/prime_server.git /prime-server-src \
+    && cd /prime-server-src \
+    && git submodule update --init --recursive \
+    && cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build -j2 \
+    && cmake --install build \
+    && rm -rf /prime-server-src
 
 # --- Clone Valhalla source, swap file, recompile ---
 COPY valhalla_custom/pedestriancost.cc /tmp/pedestriancost.cc
@@ -40,13 +52,17 @@ RUN git clone https://github.com/valhalla/valhalla.git /valhalla-src \
     && git checkout 02ebe2dd8 \
     && git submodule update --init --recursive \
     && mkdir build && cd build \
-    && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=OFF
+    && cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_SERVICES=ON \
+        -DENABLE_TESTS=OFF \
+        -DENABLE_BENCHMARKS=OFF
 
 # Layer 2: swap file + compile (only reruns when pedestriancost.cc changes)
 COPY valhalla_custom/pedestriancost.cc /valhalla-src/src/sif/pedestriancost.cc
 
 RUN cd /valhalla-src/build \
-    && make -j$(nproc) all \
+    && make -j2 all \
     && make install
 
 # --- Rest of your existing setup ---
@@ -59,7 +75,9 @@ RUN uv venv /opt/venv --python $(which python3) --system-site-packages \
         -r requirements.txt \
         ujson
 
-ENV PATH="/opt/venv/bin:${PATH}"
+# Ensure compiled Valhalla binaries in /usr/local/bin take precedence
+# over any pip-bundled equivalents in the venv
+ENV PATH="/usr/local/bin:/opt/venv/bin:${PATH}"
 ENV PYTHONPATH=/app
 
 COPY scripts/bootstrap_tiles.sh /bootstrap_tiles.sh
