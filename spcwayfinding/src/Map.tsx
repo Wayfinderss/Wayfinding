@@ -81,6 +81,7 @@ export default function Map() {
 
   const [activeBasemap, setTileKey] = useState(0);
   const [showElevation, setShowElevation] = useState(false);
+  const [avoidStaircases, setAvoidStaircases] = useState(false);
 
   const handleSearch = async () => {
     if (!from.trim() || !to.trim()) return;
@@ -89,9 +90,7 @@ export default function Map() {
 
     try {
       const fromResults = await geocodeAddress(from);
-      console.log('fromResults:', fromResults);
       const toResults = await geocodeAddress(to);
-      console.log('toResults:', toResults);
 
       if (fromResults.length && toResults.length) {
         const start = fromResults[0];
@@ -102,7 +101,8 @@ export default function Map() {
 
         await fetchRoute(
           { lat: start.lat, lon: start.lon },
-          { lat: end.lat, lon: end.lon }
+          { lat: end.lat, lon: end.lon },
+          avoidStaircases
         );
       } else {
         setErrorMessage('No matching addresses found');
@@ -117,9 +117,16 @@ export default function Map() {
 
   useEffect(() => {
     if (startPoint && endPoint) {
-      fetchRoute(startPoint, endPoint);
+      fetchRoute(startPoint, endPoint, avoidStaircases);
     }
   }, [startPoint, endPoint]);
+
+  useEffect(() => {
+    if (startPoint && endPoint && routePolyline) {
+      fetchRoute(startPoint, endPoint, avoidStaircases)
+    }
+  }, [avoidStaircases]);
+
 
   const handleLocationSelect = async (lat: number, lon: number) => {
     setIsLoading(true);
@@ -161,71 +168,138 @@ export default function Map() {
     }
   };
 
-  const fetchRoute = async (start: Location, end: Location) => {
+  // Decode a Valhalla-encoded polyline (precision 6) into [lat, lon] pairs
+  const decodePolyline = (encoded: string): [number, number][] => {
+    const coords: [number, number][] = [];
+    let index = 0, lat = 0, lon = 0;
+    while (index < encoded.length) {
+      let b, shift = 0, result = 0;
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lat += (result & 1) ? ~(result >> 1) : result >> 1;
+      shift = 0; result = 0;
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lon += (result & 1) ? ~(result >> 1) : result >> 1;
+      coords.push([lat / 1e6, lon / 1e6]);
+    }
+    return coords;
+  };
+
+  // Extract entry/exit coordinates of all stair maneuvers (type 40) from a route.
+  const extractStairLocations = (data: ValhallaSuccessResponse): { lat: number; lon: number }[] => {
+    const leg = data.trip?.legs?.[0];
+    if (!leg) return [];
+    const coords = decodePolyline(leg.shape);
+    const excludes: { lat: number; lon: number }[] = [];
+    for (const maneuver of leg.maneuvers) {
+      if ((maneuver as any).type === 40) {
+        const entry = coords[(maneuver as any).begin_shape_index];
+        const exit  = coords[(maneuver as any).end_shape_index];
+        if (entry) excludes.push({ lat: entry[0], lon: entry[1] });
+        if (exit)  excludes.push({ lat: exit[0],  lon: exit[1]  });
+      }
+    }
+    return excludes;
+  };
+
+  const callValhalla = async (
+    start: Location,
+    end: Location,
+    excludeLocations?: { lat: number; lon: number }[]
+  ): Promise<{ response: Response; data: ValhallaRouteResponse }> => {
+    const body: any = {
+      locations: [
+        { lat: start.lat, lon: start.lon },
+        { lat: end.lat, lon: end.lon }
+      ],
+      costing: 'pedestrian',
+      directions_options: { units: 'miles' },
+      elevation_interval: 10,
+      user_id: null,
+    };
+    if (excludeLocations && excludeLocations.length > 0) {
+      body.exclude_locations = excludeLocations;
+    }
+    const response = await fetch('/valhalla/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const rawText = await response.text();
+    let data: ValhallaRouteResponse;
+    try {
+      data = JSON.parse(rawText) as ValhallaRouteResponse;
+    } catch {
+      throw new Error('Routing service returned invalid JSON');
+    }
+    return { response, data };
+  };
+
+  const applyRouteData = (data: ValhallaSuccessResponse) => {
+    setFullRouteData(data);
+    const encodedShape = data.trip?.legs?.[0]?.shape;
+    if (!encodedShape) {
+      setErrorMessage('Invalid response from routing engine');
+      return;
+    }
+    setRoutePolyline(encodedShape);
+    const maneuvers = data.trip?.legs?.[0]?.maneuvers ?? [];
+    const parsedSteps = maneuvers.map((m) => {
+      const distance = m.length ? m.length.toFixed(2) : '0';
+      const minutes = m.time ? Math.round(m.time / 60) : 0;
+      return {
+        instruction: m.instruction,
+        detail: m.length && m.length > 0 ? `${distance} mi · ${minutes} min` : '—',
+      };
+    });
+    setSteps(parsedSteps);
+    setSearched(true);
+  };
+
+  const fetchRoute = async (start: Location, end: Location, avoidStairs: boolean = false) => {
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/valhalla/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locations: [
-            { lat: start.lat, lon: start.lon },
-            { lat: end.lat, lon: end.lon }
-          ],
-          costing: 'pedestrian',
-          directions_options: { units: 'miles' },
-          elevation_interval: 10,
-          user_id: null
-        })
-      });
+      // Pass 1: get the baseline route
+      const { response: resp1, data: data1 } = await callValhalla(start, end);
 
-      const rawText = await response.text();
-
-      let data: ValhallaRouteResponse;
-
-      try {
-        data = JSON.parse(rawText) as ValhallaRouteResponse;
-      } catch {
-        setErrorMessage('Routing service returned invalid JSON');
-        setRoutePolyline(null);
-        return;
-      }
-
-      setFullRouteData(data);
-
-      if (!response.ok || data.status !== 'ok') {
+      if (!resp1.ok || data1.status !== 'ok') {
         setErrorMessage('Routing error');
         setRoutePolyline(null);
         return;
       }
 
-      const encodedShape = data.trip?.legs?.[0]?.shape;
-
-      if (!encodedShape) {
-        setErrorMessage('Invalid response from routing engine');
+      if (!avoidStairs) {
+        applyRouteData(data1 as ValhallaSuccessResponse);
         return;
       }
 
-      setRoutePolyline(encodedShape);
+      // Pass 2: check if this route uses stairs
+      const stairLocations = extractStairLocations(data1 as ValhallaSuccessResponse);
 
-      const maneuvers = data.trip?.legs?.[0]?.maneuvers ?? [];
+      if (stairLocations.length === 0) {
+        // No stairs in the route — use it as-is
+        applyRouteData(data1 as ValhallaSuccessResponse);
+        return;
+      }
 
-      const parsedSteps = maneuvers.map((m) => {
-        const distance = m.length ? m.length.toFixed(2) : '0';
-        const minutes = m.time ? Math.round(m.time / 60) : 0;
+      // Pass 3: retry with stair nodes excluded
+      const { response: resp2, data: data2 } = await callValhalla(start, end, stairLocations);
 
-        return {
-          instruction: m.instruction,
-          detail: m.length && m.length > 0
-            ? `${distance} mi · ${minutes} min`
-            : '—'
-        };
-      });
+      if (!resp2.ok || data2.status !== 'ok') {
+        setErrorMessage('No staircase-free route found between these points. Try a different destination, or disable "Avoid Staircases".');
+        // Leave existing polyline visible
+        return;
+      }
 
-      setSteps(parsedSteps);
-      setSearched(true);
+      // Check if the retry still contains stairs
+      const retryStairs = extractStairLocations(data2 as ValhallaSuccessResponse);
+      if (retryStairs.length > 0) {
+        setErrorMessage('No staircase-free route found between these points. Try a different destination, or disable "Avoid Staircases".');
+        return;
+      }
+
+      applyRouteData(data2 as ValhallaSuccessResponse);
 
     } catch (error) {
       console.error(error);
@@ -297,6 +371,8 @@ export default function Map() {
         onResetBasemap={() => setTileKey(k => k + 1)}
         showElevation={showElevation}
         onToggleElevation={setShowElevation}
+        avoidStaircases={avoidStaircases}
+        onToggleStaircases={setAvoidStaircases}
       />
     </div>
   );

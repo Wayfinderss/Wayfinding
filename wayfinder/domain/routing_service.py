@@ -91,14 +91,10 @@ class ValhallaRouteService:
                 payload["shape_format"] = options["shape_format"]
             if "elevation_interval" in options:
                 payload["elevation_interval"] = options["elevation_interval"]
-
-            costing_options = {
-                key: value
-                for key, value in options.items()
-                if key not in {"directions_options", "shape_format", "elevation_interval"}
-            }
-            if costing_options:
-                payload["costing_options"] = {costing: costing_options}
+            if "costing_options" in options:
+                payload["costing_options"] = options["costing_options"]
+            if "exclude_locations" in options:
+                payload["exclude_locations"] = options["exclude_locations"]
 
         return payload
 

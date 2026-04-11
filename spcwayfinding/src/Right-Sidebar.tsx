@@ -135,6 +135,8 @@ interface RightSidebarProps {
   onResetBasemap?: () => void;
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
+  avoidStaircases: boolean;          // NEW
+  onToggleStaircases: (val: boolean) => void;  // NEW
 }
 
 
@@ -603,13 +605,16 @@ function LegendPanel() {
 function LayerPanel({
   showElevation,
   onToggleElevation,
+  avoidStaircases,          // NEW
+  onToggleStaircases,       // NEW
 }: {
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
+  avoidStaircases: boolean;          // NEW
+  onToggleStaircases: (val: boolean) => void;  // NEW
 }) {
   // ── Accessibility profile state ──
   const [profile, setProfile] = useState<AccessibilityProfile>("custom");
-  const [avoidStaircases, setAvoidStaircases] = useState(false);
   const [maxIncline, setMaxIncline] = useState(15);
 
 
@@ -629,7 +634,7 @@ function LayerPanel({
     setProfile(p);
     if (p !== "custom") {
       const preset = PROFILE_PRESETS[p];
-      setAvoidStaircases(preset.avoidStaircases);
+      onToggleStaircases(preset.avoidStaircases);
       setMaxIncline(preset.maxIncline);
     }
   };
@@ -651,6 +656,7 @@ function LayerPanel({
     setJustApplied(true);
     setTimeout(() => setJustApplied(false), 1500);
   };
+  
 
   const isDirty =
     !appliedSettings ||
@@ -727,7 +733,10 @@ function LayerPanel({
           </div>
           <button
             className={`toggle${avoidStaircases ? " on" : ""}`}
-            onClick={() => setAvoidStaircases((v) => !v)} aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+            onClick={() => {
+              onToggleStaircases(!avoidStaircases);
+            }}
+            aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
           >
             <div className="toggle-thumb" />
           </button>
@@ -832,7 +841,7 @@ const PANEL_META: Record<
   },
 };
 
-export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation }: RightSidebarProps) {
+export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, avoidStaircases, onToggleStaircases }: RightSidebarProps) {
   const [active, setActive] = useState<PanelKey>(null);
   const [resetFired, setResetFired] = useState(false);
 
@@ -875,6 +884,8 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
               <LayerPanel
                 showElevation={showElevation}
                 onToggleElevation={onToggleElevation}
+                avoidStaircases={avoidStaircases}
+                onToggleStaircases={onToggleStaircases}
               />
             )}
           </div>
