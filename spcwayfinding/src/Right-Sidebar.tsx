@@ -131,18 +131,15 @@ const IconCustomProfile = ({ size = 22 }: { size?: number }) => (
 // ─────────────────────────────────────────────
 //  Props
 // ─────────────────────────────────────────────
-interface Location {
-  lat: number;
-  lon: number;
-}
 
 interface RightSidebarProps {
   onResetBasemap?: () => void;
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
-  startPoint: Location | null;
-  endPoint: Location | null;
-  fetchRoute: (start: Location, end: Location, costingOptions?: object) => Promise<void>;
+  avoidStaircases: boolean;
+  onToggleStaircases: (val: boolean) => void;
+  incline: number | null;
+  onInclineChange: (val: number | null) => void;
 }
 
 
@@ -611,20 +608,21 @@ function LegendPanel() {
 function LayerPanel({
   showElevation,
   onToggleElevation,
-  startPoint,
-  endPoint,
-  fetchRoute,
+  avoidStaircases,
+  onToggleStaircases,
+  incline,
+  onInclineChange,
 }: {
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
-  startPoint: Location | null;
-  endPoint: Location | null;
-  fetchRoute: (start: Location, end: Location, costingOptions?: object) => Promise<void>;
+  avoidStaircases: boolean;
+  onToggleStaircases: (val: boolean) => void;
+  incline: number | null;
+  onInclineChange: (val: number | null) => void;
 }) {
   // ── Accessibility profile state ──
   const [profile, setProfile] = useState<AccessibilityProfile>("custom");
-  const [avoidStaircases, setAvoidStaircases] = useState(false);
-  const [maxIncline, setMaxIncline] = useState(15);
+  const [maxIncline, setMaxIncline] = useState(incline ?? 15);
 
 
   // ── Applied state (what's going to be sent to backend) ──
@@ -643,25 +641,20 @@ function LayerPanel({
     setProfile(p);
     if (p !== "custom") {
       const preset = PROFILE_PRESETS[p];
-      setAvoidStaircases(preset.avoidStaircases);
+      onToggleStaircases(preset.avoidStaircases);
       setMaxIncline(preset.maxIncline);
     }
   };
 
 
-  const handleApply = async () => {
+  const handleApply = () => {
     const settings = { profile, avoidStaircases, maxIncline };
     setAppliedSettings(settings);
-
-    if (startPoint && endPoint) {
-      await fetchRoute(startPoint, endPoint, {
-        pedestrian: { max_grade: maxIncline }
-      });
-    }
-
+    onInclineChange(maxIncline);
     setJustApplied(true);
     setTimeout(() => setJustApplied(false), 1500);
   };
+
 
   const isDirty =
     !appliedSettings ||
@@ -738,7 +731,10 @@ function LayerPanel({
           </div>
           <button
             className={`toggle${avoidStaircases ? " on" : ""}`}
-            onClick={() => setAvoidStaircases((v) => !v)} aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+            onClick={() => {
+              onToggleStaircases(!avoidStaircases);
+            }}
+            aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
           >
             <div className="toggle-thumb" />
           </button>
@@ -843,7 +839,7 @@ const PANEL_META: Record<
   },
 };
 
-export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, startPoint, endPoint, fetchRoute }: RightSidebarProps) {
+export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, avoidStaircases, onToggleStaircases, incline, onInclineChange }: RightSidebarProps) {
   const [active, setActive] = useState<PanelKey>(null);
   const [resetFired, setResetFired] = useState(false);
 
@@ -886,9 +882,10 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
               <LayerPanel
                 showElevation={showElevation}
                 onToggleElevation={onToggleElevation}
-                startPoint={startPoint}
-                endPoint={endPoint}
-                fetchRoute={fetchRoute}
+                avoidStaircases={avoidStaircases}
+                onToggleStaircases={onToggleStaircases}
+                incline={incline}
+                onInclineChange={onInclineChange}
               />
             )}
           </div>
