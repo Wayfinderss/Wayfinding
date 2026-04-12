@@ -95,7 +95,6 @@ class ValhallaRouteService:
                 payload["costing_options"] = options["costing_options"]
             if "exclude_locations" in options:
                 payload["exclude_locations"] = options["exclude_locations"]
-
         return payload
 
     def _extract_trip(self, adapter_result: Dict[str, Any]) -> Dict[str, Any]:

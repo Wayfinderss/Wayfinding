@@ -184,7 +184,11 @@ export default function Map() {
     return coords;
   };
 
-  // Extract entry/exit coordinates of all stair maneuvers (type 40) from a route.
+  // Extract INTERIOR coordinates of stair maneuvers to use as exclude_locations.
+  // We must NOT use the entry/exit nodes — those are shared with adjacent edges
+  // and may coincide with the route start/end, causing Valhalla error 442.
+  // Interior points belong only to the stair edge, so excluding them blocks
+  // only that edge without affecting any other part of the graph.
   const extractStairLocations = (data: ValhallaSuccessResponse): { lat: number; lon: number }[] => {
     const leg = data.trip?.legs?.[0];
     if (!leg) return [];
@@ -192,10 +196,24 @@ export default function Map() {
     const excludes: { lat: number; lon: number }[] = [];
     for (const maneuver of leg.maneuvers) {
       if ((maneuver as any).type === 40) {
-        const entry = coords[(maneuver as any).begin_shape_index];
-        const exit  = coords[(maneuver as any).end_shape_index];
-        if (entry) excludes.push({ lat: entry[0], lon: entry[1] });
-        if (exit)  excludes.push({ lat: exit[0],  lon: exit[1]  });
+        const begin: number = (maneuver as any).begin_shape_index;
+        const end: number   = (maneuver as any).end_shape_index;
+        // Collect all interior indices (exclude begin and end)
+        const interior: number[] = [];
+        for (let i = begin + 1; i < end; i++) interior.push(i);
+        if (interior.length > 0) {
+          // Use the middle interior point
+          const mid = coords[interior[Math.floor(interior.length / 2)]];
+          if (mid) excludes.push({ lat: mid[0], lon: mid[1] });
+        } else {
+          // Single-segment stair (begin and end are adjacent nodes) —
+          // compute a geographic midpoint between them
+          const a = coords[begin];
+          const b = coords[end];
+          if (a && b) {
+            excludes.push({ lat: (a[0] + b[0]) / 2, lon: (a[1] + b[1]) / 2 });
+          }
+        }
       }
     }
     return excludes;
@@ -276,29 +294,36 @@ export default function Map() {
 
       // Pass 2: check if this route uses stairs
       const stairLocations = extractStairLocations(data1 as ValhallaSuccessResponse);
+      console.log('[avoidStairs] Pass 1 stair locations found:', stairLocations);
 
       if (stairLocations.length === 0) {
         // No stairs in the route — use it as-is
+        console.log('[avoidStairs] No stairs in route, using as-is');
         applyRouteData(data1 as ValhallaSuccessResponse);
         return;
       }
 
       // Pass 3: retry with stair nodes excluded
+      console.log('[avoidStairs] Retrying with exclude_locations:', stairLocations);
       const { response: resp2, data: data2 } = await callValhalla(start, end, stairLocations);
+      console.log('[avoidStairs] Pass 2 response status:', resp2.status, 'data.status:', data2.status);
 
       if (!resp2.ok || data2.status !== 'ok') {
+        console.log('[avoidStairs] Pass 2 failed - no stair-free route');
         setErrorMessage('No staircase-free route found between these points. Try a different destination, or disable "Avoid Staircases".');
-        // Leave existing polyline visible
         return;
       }
 
       // Check if the retry still contains stairs
       const retryStairs = extractStairLocations(data2 as ValhallaSuccessResponse);
+      console.log('[avoidStairs] Pass 2 still has stairs:', retryStairs);
       if (retryStairs.length > 0) {
+        console.log('[avoidStairs] Pass 2 route still uses stairs - giving up');
         setErrorMessage('No staircase-free route found between these points. Try a different destination, or disable "Avoid Staircases".');
         return;
       }
 
+      console.log('[avoidStairs] Pass 2 success - stair-free route found');
       applyRouteData(data2 as ValhallaSuccessResponse);
 
     } catch (error) {
