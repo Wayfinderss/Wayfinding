@@ -42,7 +42,8 @@
       "use_urban_tag": false,
       "use_rest_area": false,
       "scan_tar": false
-    }
+    },
+    "elevation": "/app/data/valhalla/elevation_data"
   },
   "additional_data": {
     "elevation": "/app/data/valhalla/elevation_data"

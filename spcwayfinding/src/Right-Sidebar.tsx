@@ -131,10 +131,18 @@ const IconCustomProfile = ({ size = 22 }: { size?: number }) => (
 // ─────────────────────────────────────────────
 //  Props
 // ─────────────────────────────────────────────
+interface Location {
+  lat: number;
+  lon: number;
+}
+
 interface RightSidebarProps {
   onResetBasemap?: () => void;
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
+  startPoint: Location | null;
+  endPoint: Location | null;
+  fetchRoute: (start: Location, end: Location, costingOptions?: object) => Promise<void>;
 }
 
 
@@ -603,9 +611,15 @@ function LegendPanel() {
 function LayerPanel({
   showElevation,
   onToggleElevation,
+  startPoint,
+  endPoint,
+  fetchRoute,
 }: {
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
+  startPoint: Location | null;
+  endPoint: Location | null;
+  fetchRoute: (start: Location, end: Location, costingOptions?: object) => Promise<void>;
 }) {
   // ── Accessibility profile state ──
   const [profile, setProfile] = useState<AccessibilityProfile>("custom");
@@ -635,18 +649,15 @@ function LayerPanel({
   };
 
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const settings = { profile, avoidStaircases, maxIncline };
     setAppliedSettings(settings);
 
-    // TODO: replace with real API call e.g:
-    // await fetch('/api/accessibility-profile', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(settings),
-    // });
-
-    console.log('Applying accessibility settings:', settings);
+    if (startPoint && endPoint) {
+      await fetchRoute(startPoint, endPoint, {
+        pedestrian: { max_grade: maxIncline }
+      });
+    }
 
     setJustApplied(true);
     setTimeout(() => setJustApplied(false), 1500);
@@ -832,7 +843,7 @@ const PANEL_META: Record<
   },
 };
 
-export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation }: RightSidebarProps) {
+export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, startPoint, endPoint, fetchRoute }: RightSidebarProps) {
   const [active, setActive] = useState<PanelKey>(null);
   const [resetFired, setResetFired] = useState(false);
 
@@ -875,6 +886,9 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
               <LayerPanel
                 showElevation={showElevation}
                 onToggleElevation={onToggleElevation}
+                startPoint={startPoint}
+                endPoint={endPoint}
+                fetchRoute={fetchRoute}
               />
             )}
           </div>

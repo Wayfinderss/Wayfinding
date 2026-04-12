@@ -24,6 +24,7 @@ class ValhallaConfigBuilder:
         config["mjolnir"]["tile_dir"] = str(self.tiles_dir)
         config["mjolnir"].pop("tile_extract", None)
         config["mjolnir"].pop("traffic_extract", None)
+        config["mjolnir"]["elevation"] = str(ELEVATION_DIR)
 
         # Elevation — valhalla_build_elevation downloads tiles here,
         # and valhalla_build_tiles reads them from the same path.

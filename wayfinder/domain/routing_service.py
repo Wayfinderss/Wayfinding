@@ -67,14 +67,14 @@ class ValhallaRouteService:
         return {"success": True, "trip": trip}
 
     def _build_route_payload(
-        self,
-        *,
-        origin_lat: float,
-        origin_lng: float,
-        dest_lat: float,
-        dest_lng: float,
-        costing: str,
-        options: Dict[str, Any] | None,
+            self,
+            *,
+            origin_lat: float,
+            origin_lng: float,
+            dest_lat: float,
+            dest_lng: float,
+            costing: str,
+            options: Dict[str, Any] | None,
     ) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "locations": [
@@ -84,22 +84,10 @@ class ValhallaRouteService:
             "costing": costing,
         }
 
-        if options:
-            if "directions_options" in options:
-                payload["directions_options"] = options["directions_options"]
-            if "shape_format" in options:
-                payload["shape_format"] = options["shape_format"]
-            if "elevation_interval" in options:
-                payload["elevation_interval"] = options["elevation_interval"]
+        if options and options.get("pedestrian"):
+            payload["costing_options"] = {"pedestrian": options.get("pedestrian")}
 
-            costing_options = {
-                key: value
-                for key, value in options.items()
-                if key not in {"directions_options", "shape_format", "elevation_interval"}
-            }
-            if costing_options:
-                payload["costing_options"] = {costing: costing_options}
-
+        print(payload)
         return payload
 
     def _extract_trip(self, adapter_result: Dict[str, Any]) -> Dict[str, Any]:

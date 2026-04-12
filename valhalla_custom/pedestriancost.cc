@@ -685,7 +685,7 @@ bool PedestrianCost::Allowed(const baldr::DirectedEdge* edge,
       IsUserAvoidEdge(edgeid) || edge->sac_scale() > max_hiking_difficulty_ ||
       (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx() &&
        pred.mode() == TravelMode::kPedestrian) ||
-      //      (edge->max_up_slope() > max_grade_ || edge->max_down_slope() > max_grade_) ||
+         //   (edge->max_up_slope() > max_grade_ || edge->max_down_slope() > max_grade_) ||
       // path_distance for multimodal is currently checked inside the algorithm
       ((!allow_transit_connections_ && pred.path_distance() + edge->length()) > max_distance_) ||
       CheckExclusions<true>(edge, pred)) {

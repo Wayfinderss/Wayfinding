@@ -161,7 +161,7 @@ export default function Map() {
     }
   };
 
-  const fetchRoute = async (start: Location, end: Location) => {
+  const fetchRoute = async (start: Location, end: Location, costingOptions?: object) => {
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -177,7 +177,8 @@ export default function Map() {
           costing: 'pedestrian',
           directions_options: { units: 'miles' },
           elevation_interval: 10,
-          user_id: null
+          user_id: null,
+          ...(costingOptions && { costing_options: costingOptions })
         })
       });
 
@@ -250,11 +251,11 @@ export default function Map() {
   const sharedProps = { 
     startPoint, 
     endPoint,
-     isLoading,
-     errorMessage,
-     routePolyline,
-     clearRoute
-     };
+    isLoading,
+    errorMessage,
+    routePolyline,
+    clearRoute
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
@@ -297,6 +298,9 @@ export default function Map() {
         onResetBasemap={() => setTileKey(k => k + 1)}
         showElevation={showElevation}
         onToggleElevation={setShowElevation}
+        startPoint={startPoint}
+        endPoint={endPoint}
+        fetchRoute={fetchRoute}
       />
     </div>
   );

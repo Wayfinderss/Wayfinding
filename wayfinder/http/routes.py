@@ -88,6 +88,15 @@ class DirectionsOptions(BaseModel):
     units: Optional[str] = None
 
 
+class PedestrianCostingOptions(BaseModel):
+    use_hills: Optional[float] = None
+    max_grade: Optional[int] = None
+
+
+class CostingOptions(BaseModel):
+    pedestrian: Optional[PedestrianCostingOptions] = None
+
+
 class RouteRequest(BaseModel):
     locations: list[ValhallaLocation]
     costing: str = "pedestrian"
@@ -95,6 +104,7 @@ class RouteRequest(BaseModel):
     shape_format: Optional[str] = None
     elevation_interval: Optional[int] = None
     user_id: Optional[str] = None
+    costing_options: Optional[CostingOptions] = None
 
 
 @router.post("/route")
@@ -114,6 +124,8 @@ def route(request: RouteRequest):
         options["shape_format"] = request.shape_format
     if request.elevation_interval is not None:
         options["elevation_interval"] = request.elevation_interval
+    if request.costing_options is not None and request.costing_options.pedestrian is not None:
+        options["pedestrian"] = request.costing_options.pedestrian.model_dump(exclude_none=True)
 
     return controller.get_route(
         origin_lat=origin.lat,
