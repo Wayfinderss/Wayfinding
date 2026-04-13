@@ -25,6 +25,12 @@ const LEGEND_ITEMS = [
     icon: "●",
   },
   {
+    color: "#2196F3",
+    label: "Elevation Marker",
+    desc: "Current position on route when hovering the elevation profile",
+    icon: "●",
+  },
+  {
     color: "#6e94f5",
     label: "Route",
     desc: "Calculated walking / driving path",
