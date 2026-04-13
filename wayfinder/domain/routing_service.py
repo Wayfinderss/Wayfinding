@@ -84,10 +84,19 @@ class ValhallaRouteService:
             "costing": costing,
         }
 
-        if options and options.get("pedestrian"):
-            payload["costing_options"] = {"pedestrian": options.get("pedestrian")}
-
-        print(payload)
+        if options:
+            if "directions_options" in options:
+                payload["directions_options"] = options["directions_options"]
+            if "shape_format" in options:
+                payload["shape_format"] = options["shape_format"]
+            if "elevation_interval" in options:
+                payload["elevation_interval"] = options["elevation_interval"]
+            if "costing_options" in options:
+                payload["costing_options"] = options["costing_options"]
+            if "exclude_locations" in options:
+                payload["exclude_locations"] = options["exclude_locations"]
+            if options and options.get("pedestrian"):
+                payload["costing_options"] = {"pedestrian": options.get("pedestrian")}
         return payload
 
     def _extract_trip(self, adapter_result: Dict[str, Any]) -> Dict[str, Any]:
