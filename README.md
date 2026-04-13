@@ -1,19 +1,21 @@
 # SPC Wayfinding
 
-> An accessibility-focused sidewalk routing application for Southwestern Pennsylvania, built on real sidewalk data from the Southwestern Pennsylvania Commission (SPC).
+> An accessibility-focused sidewalk routing application for Southwestern Pennsylvania, built on real sidewalk data from the [Southwestern Pennsylvania Commission](https://www.spcregion.org) (SPC).
 
-Wayfnding Demo Screenshot
+![Wayfinding Demo Screenshot](./static/WayfindingDemo.png)
+
+**[See Installation Instructions](#getting-started)**
+--
 
 ## Overview
 
-SPC Wayfinding helps users navigate sidewalks and pedestrian infrastructure focused on the Southwestern Pennsylvania region. Unlike general-purpose mapping tools, this application integrates SPC's own sidewalk network data and supports **accessibility routing profiles** — allowing users to find routes that account for FILL IN  factors relevant to people with mobility needs.
+SPC Wayfinding helps users navigate sidewalks and pedestrian infrastructure focused on the Southwestern Pennsylvania region. Unlike general-purpose mapping tools, this application integrates SPC's own sidewalk network data and supports **accessibility routing profiles** allowing users to find routes that account for mobility needs.
 
-The application primarily covers the geographic bounding box of the SPC region:
+The application primarily covers the geographic bounding box of the SPC region(Allegheny, Armstrong, Beaver, Butler, Fayette, Greene, Indiana, Lawrence, Washington and Westmoreland Counties, as well as the City of Pittsburgh.)
 
 - **Longitude:** -80.52° to -78.80°
 - **Latitude:** 39.72° to 41.15°
 
-**[See Installation Instructions](#getting-started)**
 ---
 
 ## Architecture
@@ -83,14 +85,17 @@ Computes a pedestrian route between two coordinates. All routing requests are lo
 ```
 
 
-| Field                      | Type   | Required | Description                                                     |
-| -------------------------- | ------ | -------- | --------------------------------------------------------------- |
-| `locations`                | array  | ✅        | Exactly two points: `[origin, destination]`                     |
-| `costing`                  | string | —        | Routing profile. Defaults to `"pedestrian"`                     |
-| `directions_options.units` | string | —        | `"miles"` or `"kilometers"`                                     |
-| `shape_format`             | string | —        | Format for the returned path geometry (e.g. `"geojson"`)        |
-| `elevation_interval`       | int    | —        | Interval in meters at which to sample elevation along the route |
-| `user_id`                  | string | —        | Optional identifier logged with the request for analytics       |
+| Field | Type | Description |
+|---|---|---|
+| `locations` | array | Required. Exactly two points: `[origin, destination]` |
+| `costing` | string | Routing profile. Defaults to `"pedestrian"` |
+| `directions_options.units` | string | `"miles"` or `"kilometers"` |
+| `costing_options.pedestrian.incline` | int | Maximum uphill grade (%) to allow. Values of 0 or 30 (the slider ceiling) disable the constraint entirely |
+| `costing_options.pedestrian.use_stairs` | float | Stair preference. `0.0` avoids stairs, `1.0` prefers them |
+| `exclude_locations` | array | Coordinates to avoid during routing |
+| `shape_format` | string | Format for the returned path geometry (e.g. `"geojson"`) |
+| `elevation_interval` | int | Interval in meters at which to sample elevation along the route |
+| `user_id` | string | Optional identifier logged with the request for analytics |  |
 
 
 ---
@@ -121,6 +126,14 @@ Returns a human-readable address for a given coordinate pair.
 
 
 **Example:** `GET /geocode/reverse?lat=40.4406&lon=-79.9959`
+
+---
+
+## Admin Panel
+
+A built-in browser UI for network management and demand analytics is available at **http://localhost:5173/admin**.
+
+See **[ADMIN.md](./ADMIN.md)** for full documentation of each tab.
 
 ---
 
@@ -161,7 +174,7 @@ ADMIN_API_KEY=your_admin_key_here
 REBUILD_TILES=false
 ```
 
-> Make sure not to commit your `.env` file to version control. Add it to `.gitignore`.
+> Never commit your `.env` file to version control. Add it to `.gitignore`.
 
 ---
 
@@ -170,7 +183,7 @@ REBUILD_TILES=false
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Wayfinderss/Wayfinding.git
+git clone https://github.com/YOUR_USERNAME/wayfinding.git
 cd wayfinding
 ```
 
