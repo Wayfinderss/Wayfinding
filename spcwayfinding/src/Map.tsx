@@ -79,6 +79,7 @@ export default function Map() {
   const [to, setTo] = useState('');
   const [steps, setSteps] = useState<{ instruction: string; detail: string }[] | null>(null);
   const [searched, setSearched] = useState(false);
+  const [routeSummary, setRouteSummary] = useState<{ totalDistanceMi: number; totalTimeMin: number } | null>(null);
 
   const [activeBasemap, setTileKey] = useState(0);
   const [showElevation, setShowElevation] = useState(false);
@@ -282,6 +283,10 @@ export default function Map() {
       };
     });
     setSteps(parsedSteps);
+    const leg = data.trip?.legs?.[0];
+    const totalDistanceMi = leg?.summary?.length ?? maneuvers.reduce((sum, m) => sum + (m.length ?? 0), 0);
+    const totalTimeSec = leg?.summary?.time ?? maneuvers.reduce((sum, m) => sum + (m.time ?? 0), 0);
+    setRouteSummary({ totalDistanceMi, totalTimeMin: Math.round(totalTimeSec / 60) });
     setSearched(true);
   };
 
@@ -363,6 +368,7 @@ export default function Map() {
     setFrom('');
     setTo('');
     setFullRouteData(null);
+    setRouteSummary(null);
   };
 
   const sharedProps = {
@@ -385,6 +391,7 @@ export default function Map() {
         handleSearch={handleSearch}
         steps={steps}
         searched={searched}
+        routeSummary={routeSummary}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

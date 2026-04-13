@@ -6,6 +6,11 @@ interface Step {
     detail: string;
   }
 
+interface RouteSummary {
+  totalDistanceMi: number;
+  totalTimeMin: number;
+}
+
 interface GeocodeResult {
   label: string;
   address: string;
@@ -27,6 +32,7 @@ interface GeocodeResult {
     startPoint: { lat: number; lon: number } | null;
     endPoint: { lat: number; lon: number } | null;
     clearRoute: () => void;
+    routeSummary: RouteSummary | null;
   }
   
   // const SPC_LOGO = `data:image/png`
@@ -244,6 +250,52 @@ interface GeocodeResult {
     .status-box.error   { background: #ffebee; color: #c62828; border: 1px solid #ef5350; }
     .status-box.success { background: #e8eef8; color: var(--spc-blue-dark); font-weight: 600; border: 1px solid #b8caeb; }
     .status-box.hint    { background: var(--spc-blue-pale); color: var(--spc-blue); border: 1px solid #c5d3ee; }
+
+    .error-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .error-popup {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 32px;
+      max-width: 320px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      text-align: center;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .error-popup-icon { font-size: 32px; margin-bottom: 10px; }
+    .error-popup-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #c62828;
+      margin-bottom: 8px;
+    }
+    .error-popup-body {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .error-popup-btn {
+      background: var(--spc-blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 24px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .error-popup-btn:hover { background: var(--spc-blue-dark); }
   
     .clear-btn {
       width: 100%;
@@ -329,11 +381,17 @@ interface GeocodeResult {
     steps, searched,
     isLoading, errorMessage, routePolyline,
     startPoint, endPoint, clearRoute,
+    routeSummary,
   }: SidebarProps) {
     const [fromSuggestions, setFromSuggestions] = useState<GeocodeResult[]>([]);
     const [toSuggestions, setToSuggestions] = useState<GeocodeResult[]>([]);
     const [showFromSuggestions, setShowFromSuggestions] = useState(false);
     const [showToSuggestions, setShowToSuggestions] = useState(false);
+    const [showErrorPopup, setShowErrorPopup] = useState(false);
+
+    useEffect(() => {
+      if (errorMessage) setShowErrorPopup(true);
+    }, [errorMessage]);
     const fromDebounceRef = useRef<number | null>(null);
     const toDebounceRef = useRef<number | null>(null);
 
@@ -409,6 +467,22 @@ interface GeocodeResult {
     return (
       <>
         <style>{styles}</style>
+
+        {showErrorPopup && (
+          <div className="error-overlay" onClick={() => setShowErrorPopup(false)}>
+            <div className="error-popup" onClick={(e: any) => e.stopPropagation()}>
+              <div className="error-popup-icon">⚠️</div>
+              <div className="error-popup-title">Route Unavailable</div>
+              <div className="error-popup-body">
+                No route could be found with the current parameters. Try adjusting your start or end point, or changing your route settings.
+              </div>
+              <button className="error-popup-btn" onClick={() => setShowErrorPopup(false)}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         <aside className="sidebar">
  
           {/* ── Fixed top: title + inputs + button ── */}
@@ -495,7 +569,11 @@ interface GeocodeResult {
  
             <div className="directions-header">
               <span className="directions-label">Directions</span>
-              {steps && <span className="directions-meta">~9 min · 2.5 mi</span>}
+              {steps && routeSummary && (
+                <span className="directions-meta">
+                  ~{routeSummary.totalTimeMin} min · {routeSummary.totalDistanceMi.toFixed(2)} mi
+                </span>
+              )}
             </div>
  
             {!searched ? (
