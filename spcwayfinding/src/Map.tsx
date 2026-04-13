@@ -8,6 +8,7 @@ import Sidebar from './Left-Sidebar';
 import RightSidebar from './Right-Sidebar';
 import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
+import ElevationMarker from './ElevationMarker';
 import 'leaflet/dist/leaflet.css';
 
 function InvalidateSize({ trigger }: { trigger: any }) {
@@ -97,6 +98,8 @@ export default function Map() {
       fetchRoute(startPoint, endPoint, newAvoidStaircases, newIncline);
     }
   };
+
+  const [hoveredFraction, setHoveredFraction] = useState<number | null>(null);
 
   const handleSearch = async () => {
     if (!from.trim() || !to.trim()) return;
@@ -403,9 +406,15 @@ export default function Map() {
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
+          <ElevationMarker encodedPolyline={routePolyline} fraction={hoveredFraction} />
         </MapContainer>
 
-        {showElevation && <ElevationProfile routeData={fullRouteData} />}
+        {showElevation && 
+        <ElevationProfile
+        routeData={fullRouteData}
+        onHover={setHoveredFraction}
+       />}
+
       </div>
 
       <RightSidebar
