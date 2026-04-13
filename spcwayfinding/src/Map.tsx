@@ -8,6 +8,7 @@ import Sidebar from './Left-Sidebar';
 import RightSidebar from './Right-Sidebar';
 import Controlpanel from './Controlpanel';
 import ElevationProfile from './ElevationProfile';
+import ElevationMarker from './ElevationMarker';
 import 'leaflet/dist/leaflet.css';
 
 function InvalidateSize({ trigger }: { trigger: any }) {
@@ -82,6 +83,8 @@ export default function Map() {
   const [activeBasemap, setTileKey] = useState(0);
   const [showElevation, setShowElevation] = useState(false);
 
+  const [hoveredFraction, setHoveredFraction] = useState<number | null>(null);
+
   const handleSearch = async () => {
     if (!from.trim() || !to.trim()) return;
     setIsLoading(true);
@@ -89,9 +92,7 @@ export default function Map() {
 
     try {
       const fromResults = await geocodeAddress(from);
-      console.log('fromResults:', fromResults);
       const toResults = await geocodeAddress(to);
-      console.log('toResults:', toResults);
 
       if (fromResults.length && toResults.length) {
         const start = fromResults[0];
@@ -288,9 +289,15 @@ export default function Map() {
           <MapClickHandler onLocationSelect={handleLocationSelect} />
           <RouteMarkers startPoint={startPoint} endPoint={endPoint} />
           <RouteLayer encodedPolyline={routePolyline} />
+          <ElevationMarker encodedPolyline={routePolyline} fraction={hoveredFraction} />
         </MapContainer>
 
-        {showElevation && <ElevationProfile routeData={fullRouteData} />}
+        {showElevation && 
+        <ElevationProfile
+        routeData={fullRouteData}
+        onHover={setHoveredFraction}
+       />}
+
       </div>
 
       <RightSidebar

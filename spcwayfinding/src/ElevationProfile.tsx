@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef} from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-//import polyline from '@mapbox/polyline';
 
 interface ElevationPoint {
   distance: number;      // Distance from start in miles
@@ -10,12 +9,26 @@ interface ElevationPoint {
 
 interface ElevationProfileProps {
   routeData: any | null;  // Full Valhalla response
+  onHover?: (fraction: number | null) => void;
 }
 
-export default function ElevationProfile({ routeData }: ElevationProfileProps) {
+export default function ElevationProfile({ routeData, onHover}: ElevationProfileProps) {
   const [elevationData, setElevationData] = useState<ElevationPoint[]>([]);
   const [minElev, setMinElev] = useState(0);
   const [maxElev, setMaxElev] = useState(0);
+  const [chartWidth, setChartWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      setChartWidth(entries[0].contentRect.width);
+    });
+    ro.observe(el);
+    setChartWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, [elevationData]); // re-run when elevationData arrives so ref is mounted
 
   useEffect(() => {
     if (!routeData || !routeData.trip) {
@@ -27,9 +40,7 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
       const leg = routeData.trip.legs[0];
       
       // Check if we have the elevation array (Valhalla's format)
-      if (leg.elevation && Array.isArray(leg.elevation) && leg.shape) {
-        console.log('Found elevation array with', leg.elevation.length, 'points');
-        
+      if (leg.elevation && Array.isArray(leg.elevation) && leg.shape) {        
         // Decode the polyline to get coordinates
         //const coordinates = polyline.decode(leg.shape, 6);
         const elevationArray = leg.elevation; // Array of elevation values in meters
@@ -59,10 +70,6 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
           };
         });
 
-        console.log('Processed elevation points:', points.length);
-        console.log('First point:', points[0]);
-        console.log('Last point:', points[points.length - 1]);
-
         setElevationData(points);
         
         // Calculate min/max for dynamic scaling
@@ -72,7 +79,6 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
         
       } else {
         console.warn('No elevation array in Valhalla response');
-        console.log('Available leg properties:', Object.keys(leg));
         setElevationData([]);
       }
     } catch (error) {
@@ -81,6 +87,17 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
     }
   }, [routeData]);
 
+  const handleMouseMove = (e: any) => {
+    if (!onHover || elevationData.length === 0) return;
+    if (e.activeLabel !== undefined && e.activeLabel !== null) {
+      const totalDistance = elevationData[elevationData.length - 1].distance;
+      const fraction = totalDistance > 0 ? Number(e.activeLabel) / totalDistance : 0;
+      onHover(fraction);
+    }
+  };
+
+  const handleMouseLeave = () => onHover?.(null);
+
   if (elevationData.length === 0) {
     return null; // Don't show anything if no route
   }
@@ -88,10 +105,13 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
   return (
     <div style={{
       height: '140px',
+      minHeight: '140px',
+      flexShrink: 0,
       width: '100%',
       background: 'rgba(255, 255, 255, 0.95)',
       borderTop: '1px solid #ddd',
       padding: '10px 20px 10px 10px',
+      boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
       gap: '5px'
@@ -108,9 +128,17 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
         Elevation Profile
       </div>
 
+      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }}>
+      {chartWidth > 0 && (
+        <AreaChart
+        width={chartWidth}
+        height={100}
+        data={elevationData}
+        margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
       {/* Chart */}
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={elevationData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="elevationGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#2196F3" stopOpacity={0.3}/>
@@ -160,7 +188,8 @@ export default function ElevationProfile({ routeData }: ElevationProfileProps) {
             name="Elevation"
           />
         </AreaChart>
-      </ResponsiveContainer>
+         )}
+    </div>
     </div>
   );
 }
