@@ -35,20 +35,11 @@ const LEGEND_ITEMS = [
 // Profile presets — fake numbers for now need backend
 const PROFILE_PRESETS: Record<
   "wheelchair" | "cane",
-  { avoidStaircases: boolean; incline: number }
+  { avoidStaircases: boolean; maxIncline: number }
 > = {
-  wheelchair: { avoidStaircases: true, incline: 5 },
-  cane: { avoidStaircases: true, incline: 10 },
+  wheelchair: { avoidStaircases: true, maxIncline: 5 },
+  cane: { avoidStaircases: true, maxIncline: 10 },
 };
-
-/** Maps the UI `incline` (percent) to `costing_options.pedestrian` for the route API. */
-function pedestrianCostingFromIncline(incline: number): object {
-  return {
-    pedestrian: {
-      incline,
-    },
-  };
-}
 
 const LAYERS = [
   {
@@ -146,9 +137,8 @@ interface RightSidebarProps {
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
   avoidStaircases: boolean;
-  onToggleStaircases: (val: boolean) => void;
   incline: number | null;
-  onInclineChange: (val: number | null) => void;
+  onApply: (avoidStaircases: boolean, incline: number | null) => void;
 }
 
 
@@ -614,32 +604,43 @@ function LegendPanel() {
   );
 }
 
+// The slider's maximum. When the slider sits at this value the user has set
+// no meaningful constraint, so we must NOT send /incline to Valhalla at all
+// (backend only activates the slope filter when the field is present).
+const INCLINE_SLIDER_MAX = 30;
+
 function LayerPanel({
   showElevation,
   onToggleElevation,
   avoidStaircases,
-  onToggleStaircases,
   incline,
-  onInclineChange,
+  onApply,
 }: {
   showElevation: boolean;
   onToggleElevation: (val: boolean) => void;
   avoidStaircases: boolean;
-  onToggleStaircases: (val: boolean) => void;
   incline: number | null;
-  onInclineChange: (val: number | null) => void;
+  onApply: (avoidStaircases: boolean, incline: number | null) => void;
 }) {
   // ── Accessibility profile state ──
   const [profile, setProfile] = useState<AccessibilityProfile>("custom");
-  const [avoidStaircases, setAvoidStaircases] = useState(false);
-  const [incline, setIncline] = useState(15);
 
+  // Local copy of avoidStaircases — only committed to parent on Apply,
+  // same pattern as maxIncline.
+  const [localAvoidStaircases, setLocalAvoidStaircases] = useState<boolean>(avoidStaircases);
 
-  // ── Applied state (what's going to be sent to backend) ──
+  // Slider starts at the ceiling (= "no constraint"). If a prior value was
+  // saved by the parent, restore it; otherwise default to INCLINE_SLIDER_MAX
+  // so the backend receives no /incline field and imposes no slope filter.
+  const [maxIncline, setMaxIncline] = useState<number>(
+    incline !== null ? incline : INCLINE_SLIDER_MAX
+  );
+
+  // ── Applied state (what has actually been sent to the backend) ──
   const [appliedSettings, setAppliedSettings] = useState<{
     profile: AccessibilityProfile;
     avoidStaircases: boolean;
-    incline: number;
+    maxIncline: number;
   } | null>(null);
 
   const [justApplied, setJustApplied] = useState(false);
@@ -651,30 +652,41 @@ function LayerPanel({
     setProfile(p);
     if (p !== "custom") {
       const preset = PROFILE_PRESETS[p];
-      setAvoidStaircases(preset.avoidStaircases);
-      setIncline(preset.incline);
+      setLocalAvoidStaircases(preset.avoidStaircases);
+      // Update local slider only. User still needs to hit Apply to commit
+      // and trigger a route request.
+      setMaxIncline(preset.maxIncline);
     }
   };
 
-
-  const handleApply = async () => {
-    const settings = { profile, avoidStaircases, incline };
-    setAppliedSettings(settings);
-
-    if (startPoint && endPoint) {
-      await fetchRoute(startPoint, endPoint, pedestrianCostingFromIncline(incline));
+  // Slider movement updates local display only. onInclineChange is NOT called
+  // here so the parent route request is unchanged until the user hits Apply.
+  // This prevents mid-drag route requests and ensures Apply always issues a
+  // fresh request, clearing any prior routing error.
+  const handleInclineChange = (val: number) => {
+    setMaxIncline(val);
+    if (profile !== "custom") {
+      setProfile("custom");
     }
+  };
 
+  const handleApply = () => {
+    const settings = { profile, avoidStaircases: localAvoidStaircases, maxIncline };
+    setAppliedSettings(settings);
+    // Commit both values in a single call so the parent receives them
+    // together and can call fetchRoute with both correct values at once,
+    // avoiding the React batching / stale-closure problem entirely.
+    const inclineVal = maxIncline >= INCLINE_SLIDER_MAX ? null : maxIncline;
+    onApply(localAvoidStaircases, inclineVal);
     setJustApplied(true);
     setTimeout(() => setJustApplied(false), 1500);
   };
 
-
   const isDirty =
     !appliedSettings ||
     appliedSettings.profile !== profile ||
-    appliedSettings.avoidStaircases !== avoidStaircases ||
-    appliedSettings.incline !== incline;
+    appliedSettings.avoidStaircases !== localAvoidStaircases ||
+    appliedSettings.maxIncline !== maxIncline;
 
   const toggleLayer = (id: string) => {
     if (id === "elevation") {
@@ -744,11 +756,11 @@ function LayerPanel({
             <div className="a11y-control-sublabel">Prefer ramps & level paths</div>
           </div>
           <button
-            className={`toggle${avoidStaircases ? " on" : ""}`}
+            className={`toggle${localAvoidStaircases ? " on" : ""}`}
             onClick={() => {
-              onToggleStaircases(!avoidStaircases);
+              setLocalAvoidStaircases(!localAvoidStaircases);
             }}
-            aria-label={`${avoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
+            aria-label={`${localAvoidStaircases ? "Disable" : "Enable"} staircase avoidance`}
           >
             <div className="toggle-thumb" />
           </button>
@@ -761,20 +773,21 @@ function LayerPanel({
               <div className="a11y-control-label">Max Incline</div>
               <div className="a11y-control-sublabel">Route grade limit</div>
             </div>
-            <span className="incline-value">{incline}%</span>
+            <span className="incline-value">{maxIncline}%</span>
           </div>
           <input
             type="range"
             className="incline-slider"
-            min={0}
+            min={1}
             max={30}
             step={1}
-            value={incline}
-            onChange={(e) => setIncline(Number(e.target.value))}
-            aria-label={`Max incline: ${incline}%`}
+            value={maxIncline}
+            // FIX 1c: every change propagates immediately to parent
+            onChange={(e) => handleInclineChange(Number(e.target.value))}
+            aria-label={`Max incline: ${maxIncline}%`}
           />
           <div className="incline-ticks">
-            <span>0%</span>
+            <span>1%</span>
             <span>5%</span>
             <span>10%</span>
             <span>15%</span>
@@ -783,8 +796,6 @@ function LayerPanel({
             <span>30%</span>
           </div>
         </div>
-
-
       </div>
 
       {/* Apply button */}
@@ -853,7 +864,7 @@ const PANEL_META: Record<
   },
 };
 
-export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, avoidStaircases, onToggleStaircases, incline, onInclineChange }: RightSidebarProps) {
+export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, avoidStaircases, incline, onApply }: RightSidebarProps) {
   const [active, setActive] = useState<PanelKey>(null);
   const [resetFired, setResetFired] = useState(false);
 
@@ -897,9 +908,8 @@ export default function RightSidebar({ onResetBasemap, showElevation, onToggleEl
                 showElevation={showElevation}
                 onToggleElevation={onToggleElevation}
                 avoidStaircases={avoidStaircases}
-                onToggleStaircases={onToggleStaircases}
                 incline={incline}
-                onInclineChange={onInclineChange}
+                onApply={onApply}
               />
             )}
           </div>

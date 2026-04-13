@@ -84,6 +84,20 @@ export default function Map() {
   const [avoidStaircases, setAvoidStaircases] = useState(false);
   const [incline, setIncline] = useState<number | null>(null);
 
+  // Incremented every time the user presses Apply in RightSidebar.
+  // Including this in the reroute effect guarantees a fresh route request
+  // even when incline/avoidStaircases values haven't changed — which is
+  // exactly the case when recovering from a routing error back to a value
+  // that previously worked.
+
+  const handleApplySettings = (newAvoidStaircases: boolean, newIncline: number | null) => {
+    setAvoidStaircases(newAvoidStaircases);
+    setIncline(newIncline);
+    if (startPoint && endPoint) {
+      fetchRoute(startPoint, endPoint, newAvoidStaircases, newIncline);
+    }
+  };
+
   const handleSearch = async () => {
     if (!from.trim() || !to.trim()) return;
     setIsLoading(true);
@@ -122,12 +136,6 @@ export default function Map() {
       fetchRoute(startPoint, endPoint, avoidStaircases, incline);
     }
   }, [startPoint, endPoint]);
-
-  useEffect(() => {
-    if (startPoint && endPoint && routePolyline) {
-      fetchRoute(startPoint, endPoint, avoidStaircases, incline);
-    }
-  }, [avoidStaircases, incline]);
 
   const handleLocationSelect = async (lat: number, lon: number) => {
     setIsLoading(true);
@@ -232,7 +240,7 @@ export default function Map() {
       elevation_interval: 10,
       user_id: null,
     };
-    if (inclineValue !== null) {
+    if (inclineValue !== null && inclineValue > 0) {
       body.costing_options = { pedestrian: { incline: inclineValue } };
     }
     if (excludeLocations && excludeLocations.length > 0) {
@@ -405,9 +413,8 @@ export default function Map() {
         showElevation={showElevation}
         onToggleElevation={setShowElevation}
         avoidStaircases={avoidStaircases}
-        onToggleStaircases={setAvoidStaircases}
         incline={incline}
-        onInclineChange={setIncline}
+        onApply={handleApplySettings}
       />
     </div>
   );

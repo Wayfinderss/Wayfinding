@@ -15,6 +15,11 @@ router = APIRouter(prefix="/valhalla", tags=["valhalla"])
 
 route_controller: RouteController | None = None
 
+# The frontend slider runs 0–30 %. When the value equals the ceiling it means
+# "no constraint" and the field must be omitted from the Valhalla request so
+# that pedestriancost.cc keeps apply_incline_limit_ = false.
+_INCLINE_SLIDER_MAX = 30
+
 
 def _get_db_backend() -> str:
     return os.getenv("DB_BACKEND", "postgres")
@@ -89,8 +94,6 @@ class DirectionsOptions(BaseModel):
 
 
 class PedestrianCostingOptions(BaseModel):
-    use_hills: Optional[float] = None
-    incline: Optional[int] = None
     incline: Optional[int] = None
     use_stairs: Optional[float] = None
 
@@ -128,7 +131,25 @@ def route(request: RouteRequest):
     if request.elevation_interval is not None:
         options["elevation_interval"] = request.elevation_interval
     if request.costing_options is not None:
-        options["costing_options"] = request.costing_options.model_dump(exclude_none=True)
+        costing_opts = request.costing_options.model_dump(exclude_none=True)
+
+        # Guard: strip `incline` from the pedestrian block when it is at the
+        # slider ceiling (30) or absent — Valhalla must not receive the field
+        # at all in that case, otherwise pedestriancost.cc activates the slope
+        # filter (apply_incline_limit_ = true) and exhausts the graph search.
+        ped = costing_opts.get("pedestrian")
+        if isinstance(ped, dict):
+            incline = ped.get("incline")
+            if incline is None or incline <= 0 or incline >= _INCLINE_SLIDER_MAX:
+                ped.pop("incline", None)
+            # Remove the pedestrian block entirely if it is now empty so we
+            # don't send a costing_options: {pedestrian: {}} to Valhalla.
+            if not ped:
+                costing_opts.pop("pedestrian", None)
+
+        if costing_opts:
+            options["costing_options"] = costing_opts
+
     if request.exclude_locations is not None:
         options["exclude_locations"] = [{"lat": loc.lat, "lon": loc.lon} for loc in request.exclude_locations]
 

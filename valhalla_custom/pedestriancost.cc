@@ -940,6 +940,7 @@ void ParsePedestrianCostOptions(const rapidjson::Document& doc,
     const uint32_t clamped = std::min(*incline_pct, kDefaultMaxGradeFoot);
     co->set_max_grade(clamped);
   }
+
   JSON_PBF_RANGED_DEFAULT(co, kMaxHikingDifficultyRange, json, "/max_hiking_difficulty",
                           max_hiking_difficulty, warnings);
   JSON_PBF_RANGED_DEFAULT(co, kModeFactorRange, json, "/mode_factor", mode_factor, warnings);
@@ -997,10 +998,10 @@ public:
 
 TestPedestrianCost* make_pedestriancost_from_json(const std::string& property,
                                                   float testVal,
-                                                  const std::string& /*type*/) {
+                                                  const std::string& type) {
   std::stringstream ss;
-  ss << R"({"costing": "pedestrian", "costing_options":{"pedestrian":{")" << property << R"(":)"
-     << testVal << "}}}";
+  ss << R"({"costing": "pedestrian", "costing_options":{"pedestrian":{"type":")" << type
+     << R"(",")" << property << R"(":)" << testVal << "}}}";
   Api request;
   ParseApi(ss.str(), valhalla::Options::route, request);
   return new TestPedestrianCost(request.options().costings().find(Costing::pedestrian)->second);
@@ -1114,7 +1115,9 @@ TEST(PedestrianCost, testPedestrianCostParams) {
                 test::IsBetween(kStepPenaltyWheelchairRange.min, kStepPenaltyWheelchairRange.max));
   }
 
-  // incline (% grade) → max_grade_ / slope cap
+  // incline (% grade) -> max_grade_ / slope cap — wheelchair
+  // FIX 2: now that max_grade is always set, test the clamped range directly.
+  // Values above kDefaultMaxGradeWheelchair are stored as-is up to kDefaultMaxGradeFoot.
   int_distributor.reset(make_distributor_from_range(kMaxGradeWheelchairRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
@@ -1150,7 +1153,7 @@ TEST(PedestrianCost, testPedestrianCostParams) {
                 test::IsBetween(kStepPenaltyFootRange.min, kStepPenaltyFootRange.max));
   }
 
-  // incline (% grade) → max_grade_ / slope cap
+  // incline (% grade) -> max_grade_ / slope cap — foot
   int_distributor.reset(make_distributor_from_range(kMaxGradeFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
