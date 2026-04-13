@@ -1,6 +1,8 @@
 .
+├── ADMIN.md
 ├── Dockerfile
 ├── Dockerfile.valhalla
+├── Makefile
 ├── README.md
 ├── W-Invalid Route Demand Pipeline — Demo & Setup Guide-030326-031557.pdf
 ├── count_routes.py
@@ -8,6 +10,13 @@
 │   └── valhalla
 │       ├── custom_sidewalks.geojson
 │       ├── elevation_data
+│       │   ├── N39W080.hgt
+│       │   ├── N39W081.hgt
+│       │   ├── N40W079.hgt
+│       │   ├── N40W080.hgt
+│       │   ├── N40W081.hgt
+│       │   ├── N41W080.hgt
+│       │   └── N41W081.hgt
 │       ├── network.osm
 │       ├── network.osm.pbf
 │       ├── node_registry.db
@@ -81,6 +90,7 @@
 │       ├── postgres_backend.py
 │       ├── postgres_config_model.py
 │       └── sql_backend.py
+├── output.txt
 ├── package-lock.json
 ├── pyproject.toml
 ├── requirements.txt
@@ -12433,6 +12443,7 @@
 │   │   ├── App.css
 │   │   ├── App.tsx
 │   │   ├── Controlpanel.tsx
+│   │   ├── ElevationMarker.tsx
 │   │   ├── ElevationProfile.tsx
 │   │   ├── Left-Sidebar.tsx
 │   │   ├── Map.tsx
@@ -12457,6 +12468,7 @@
 │   ├── tsconfig.node.json
 │   └── vite.config.ts
 ├── static
+│   ├── WayfindingDemo.png
 │   └── index.html
 ├── tree.txt
 ├── uv.lock
@@ -12492,4 +12504,4 @@
     │   └── tile_reloading.py
     └── main.py
 
-1069 directories, 11424 files
+1069 directories, 11436 files
