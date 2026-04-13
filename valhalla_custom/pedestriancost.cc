@@ -8,7 +8,9 @@
 #include "sif/costconstants.h"
 #include "sif/hierarchylimits.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 
 #ifdef INLINE_TEST
 #include "test.h"
@@ -113,6 +115,25 @@ constexpr ranged_default_t<uint32_t> kMaxGradeWheelchairRange{0, kDefaultMaxGrad
                                                               kDefaultMaxGradeFoot};
 constexpr ranged_default_t<uint32_t> kMaxGradeFootRange{0, kDefaultMaxGradeFoot,
                                                         kDefaultMaxGradeFoot};
+
+// `/incline` is expressed as % grade (rise/run * 100). Valhalla edge fields use degrees (see
+// baldr::DirectedEdge::max_up_slope / max_down_slope).
+constexpr uint32_t kValhallaEdgeSlopeMaxDeg = 76;
+
+inline uint32_t grade_percent_to_max_edge_slope_deg(uint32_t grade_pct) {
+  const double pct = std::min(static_cast<double>(grade_pct), 300.0);
+  const double rad = std::atan(pct / 100.0);
+  const double deg = rad * (180.0 / 3.14159265358979323846264338327950288);
+  const auto rounded = static_cast<uint32_t>(std::lround(deg));
+  return std::min(rounded, kValhallaEdgeSlopeMaxDeg);
+}
+
+inline bool edge_slope_exceeds_degrees(const baldr::DirectedEdge* edge, uint32_t max_slope_deg) {
+  const int up = edge->max_up_slope();
+  const int dn = edge->max_down_slope();
+  const int dn_mag = (dn <= 0) ? -dn : dn;
+  return up > static_cast<int>(max_slope_deg) || dn_mag > static_cast<int>(max_slope_deg);
+}
 
 // Other valid ranges and defaults (not dependent on type)
 constexpr ranged_default_t<uint32_t> kMaxHikingDifficultyRange{0, kDefaultMaxHikingDifficulty, 6};
@@ -489,7 +510,8 @@ public:
                uint16_t disallow_mask = kDisallowNone) const override {
     return DynamicCost::Allowed(edge, tile, disallow_mask) && edge->use() < Use::kRailFerry &&
            edge->sac_scale() <= max_hiking_difficulty_ &&
-           (!edge->bss_connection() || project_on_bss_connection_);
+           (!edge->bss_connection() || project_on_bss_connection_) &&
+           (!apply_incline_limit_ || !edge_slope_exceeds_degrees(edge, max_incline_slope_deg_));
   }
 
   virtual Cost BSSCost() const override {
@@ -522,7 +544,9 @@ public:
   // Minimal surface type usable by the pedestrian type
   Surface minimal_allowed_surface_;
 
-  uint32_t max_grade_;             // Maximum grade (percent).
+  uint32_t max_grade_; // User max incline as % grade when apply_incline_limit_; else unused.
+  uint32_t max_incline_slope_deg_{0}; // Same limit converted to degrees for edge slope checks.
+  bool apply_incline_limit_{false};   // True when request included costing_options.pedestrian.incline.
   SacScale max_hiking_difficulty_; // Max sac_scale (0 - 6)
   float speed_;                    // Pedestrian speed.
   float speedfactor_;              // Speed factor for costing. Based on speed.
@@ -629,7 +653,12 @@ PedestrianCost::PedestrianCost(const Costing& costing)
   speed_ = costing_options.walking_speed();
   step_penalty_ = costing_options.step_penalty();
   elevator_penalty_ = costing_options.elevator_penalty();
-  max_grade_ = costing_options.max_grade();
+
+  // Incline cap comes only from JSON `/incline` (wired to proto max_grade in ParsePedestrianCostOptions).
+  apply_incline_limit_ = costing_options.has_max_grade();
+  max_grade_ = apply_incline_limit_ ? costing_options.max_grade() : 0;
+  max_incline_slope_deg_ =
+      apply_incline_limit_ ? grade_percent_to_max_edge_slope_deg(max_grade_) : 0;
 
   if (type_ == PedestrianType::kFoot) {
     max_hiking_difficulty_ = static_cast<SacScale>(costing_options.max_hiking_difficulty());
@@ -685,7 +714,7 @@ bool PedestrianCost::Allowed(const baldr::DirectedEdge* edge,
       IsUserAvoidEdge(edgeid) || edge->sac_scale() > max_hiking_difficulty_ ||
       (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx() &&
        pred.mode() == TravelMode::kPedestrian) ||
-         //   (edge->max_up_slope() > max_grade_ || edge->max_down_slope() > max_grade_) ||
+      (apply_incline_limit_ && edge_slope_exceeds_degrees(edge, max_incline_slope_deg_)) ||
       // path_distance for multimodal is currently checked inside the algorithm
       ((!allow_transit_connections_ && pred.path_distance() + edge->length()) > max_distance_) ||
       CheckExclusions<true>(edge, pred)) {
@@ -722,7 +751,7 @@ bool PedestrianCost::AllowedReverse(const baldr::DirectedEdge* edge,
       edge->sac_scale() > max_hiking_difficulty_ ||
       (!pred.deadend() && pred.opp_local_idx() == edge->localedgeidx() &&
        pred.mode() == TravelMode::kPedestrian) ||
-      //      (opp_edge->max_up_slope() > max_grade_ || opp_edge->max_down_slope() > max_grade_) ||
+      (apply_incline_limit_ && edge_slope_exceeds_degrees(opp_edge, max_incline_slope_deg_)) ||
       opp_edge->use() == Use::kTransitConnection || opp_edge->use() == Use::kEgressConnection ||
       opp_edge->use() == Use::kPlatformConnection || CheckExclusions<false>(opp_edge, pred)) {
     return false;
@@ -899,13 +928,17 @@ void ParsePedestrianCostOptions(const rapidjson::Document& doc,
                             warnings);
     JSON_PBF_RANGED_DEFAULT(co, kStepPenaltyWheelchairRange, json, "/step_penalty", step_penalty,
                             warnings);
-    JSON_PBF_RANGED_DEFAULT(co, kMaxGradeWheelchairRange, json, "/max_grade", max_grade, warnings);
   } // Assume type = foot
   else {
     JSON_PBF_RANGED_DEFAULT(co, kMaxDistanceFootRange, json, "/max_distance", max_distance, warnings);
     JSON_PBF_RANGED_DEFAULT(co, kSpeedFootRange, json, "/walking_speed", walking_speed, warnings);
     JSON_PBF_RANGED_DEFAULT(co, kStepPenaltyFootRange, json, "/step_penalty", step_penalty, warnings);
-    JSON_PBF_RANGED_DEFAULT(co, kMaxGradeFootRange, json, "/max_grade", max_grade, warnings);
+  }
+
+  // User-facing max incline (% grade). Stored in proto `max_grade` only when set (see PedestrianCost ctor).
+  if (const auto incline_pct = rapidjson::get_optional<uint32_t>(json, "/incline")) {
+    const uint32_t clamped = std::min(*incline_pct, kDefaultMaxGradeFoot);
+    co->set_max_grade(clamped);
   }
   JSON_PBF_RANGED_DEFAULT(co, kMaxHikingDifficultyRange, json, "/max_hiking_difficulty",
                           max_hiking_difficulty, warnings);
@@ -1081,11 +1114,11 @@ TEST(PedestrianCost, testPedestrianCostParams) {
                 test::IsBetween(kStepPenaltyWheelchairRange.min, kStepPenaltyWheelchairRange.max));
   }
 
-  // max_grade_
+  // incline (% grade) → max_grade_ / slope cap
   int_distributor.reset(make_distributor_from_range(kMaxGradeWheelchairRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
-        make_pedestriancost_from_json("max_grade", (*int_distributor)(generator), "wheelchair"));
+        make_pedestriancost_from_json("incline", (*int_distributor)(generator), "wheelchair"));
     EXPECT_THAT(ctorTester->max_grade_,
                 test::IsBetween(kMaxGradeWheelchairRange.min, kMaxGradeWheelchairRange.max));
   }
@@ -1117,11 +1150,11 @@ TEST(PedestrianCost, testPedestrianCostParams) {
                 test::IsBetween(kStepPenaltyFootRange.min, kStepPenaltyFootRange.max));
   }
 
-  // max_grade_
+  // incline (% grade) → max_grade_ / slope cap
   int_distributor.reset(make_distributor_from_range(kMaxGradeFootRange));
   for (unsigned i = 0; i < testIterations; ++i) {
     ctorTester.reset(
-        make_pedestriancost_from_json("max_grade", (*int_distributor)(generator), "foot"));
+        make_pedestriancost_from_json("incline", (*int_distributor)(generator), "foot"));
     EXPECT_THAT(ctorTester->max_grade_,
                 test::IsBetween(kMaxGradeFootRange.min, kMaxGradeFootRange.max));
   }

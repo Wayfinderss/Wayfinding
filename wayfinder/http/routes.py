@@ -90,7 +90,7 @@ class DirectionsOptions(BaseModel):
 
 class PedestrianCostingOptions(BaseModel):
     use_hills: Optional[float] = None
-    max_grade: Optional[int] = None
+    incline: Optional[int] = None
 
 
 class CostingOptions(BaseModel):

@@ -35,11 +35,20 @@ const LEGEND_ITEMS = [
 // Profile presets — fake numbers for now need backend
 const PROFILE_PRESETS: Record<
   "wheelchair" | "cane",
-  { avoidStaircases: boolean; maxIncline: number }
+  { avoidStaircases: boolean; incline: number }
 > = {
-  wheelchair: { avoidStaircases: true, maxIncline: 5 },
-  cane: { avoidStaircases: true, maxIncline: 10 },
+  wheelchair: { avoidStaircases: true, incline: 5 },
+  cane: { avoidStaircases: true, incline: 10 },
 };
+
+/** Maps the UI `incline` (percent) to `costing_options.pedestrian` for the route API. */
+function pedestrianCostingFromIncline(incline: number): object {
+  return {
+    pedestrian: {
+      incline,
+    },
+  };
+}
 
 const LAYERS = [
   {
@@ -624,14 +633,14 @@ function LayerPanel({
   // ── Accessibility profile state ──
   const [profile, setProfile] = useState<AccessibilityProfile>("custom");
   const [avoidStaircases, setAvoidStaircases] = useState(false);
-  const [maxIncline, setMaxIncline] = useState(15);
+  const [incline, setIncline] = useState(15);
 
 
   // ── Applied state (what's going to be sent to backend) ──
   const [appliedSettings, setAppliedSettings] = useState<{
     profile: AccessibilityProfile;
     avoidStaircases: boolean;
-    maxIncline: number;
+    incline: number;
   } | null>(null);
 
   const [justApplied, setJustApplied] = useState(false);
@@ -644,19 +653,17 @@ function LayerPanel({
     if (p !== "custom") {
       const preset = PROFILE_PRESETS[p];
       setAvoidStaircases(preset.avoidStaircases);
-      setMaxIncline(preset.maxIncline);
+      setIncline(preset.incline);
     }
   };
 
 
   const handleApply = async () => {
-    const settings = { profile, avoidStaircases, maxIncline };
+    const settings = { profile, avoidStaircases, incline };
     setAppliedSettings(settings);
 
     if (startPoint && endPoint) {
-      await fetchRoute(startPoint, endPoint, {
-        pedestrian: { max_grade: maxIncline }
-      });
+      await fetchRoute(startPoint, endPoint, pedestrianCostingFromIncline(incline));
     }
 
     setJustApplied(true);
@@ -667,7 +674,7 @@ function LayerPanel({
     !appliedSettings ||
     appliedSettings.profile !== profile ||
     appliedSettings.avoidStaircases !== avoidStaircases ||
-    appliedSettings.maxIncline !== maxIncline;
+    appliedSettings.incline !== incline;
 
   const toggleLayer = (id: string) => {
     if (id === "elevation") {
@@ -751,7 +758,7 @@ function LayerPanel({
               <div className="a11y-control-label">Max Incline</div>
               <div className="a11y-control-sublabel">Route grade limit</div>
             </div>
-            <span className="incline-value">{maxIncline}%</span>
+            <span className="incline-value">{incline}%</span>
           </div>
           <input
             type="range"
@@ -759,9 +766,9 @@ function LayerPanel({
             min={0}
             max={30}
             step={1}
-            value={maxIncline}
-            onChange={(e) => setMaxIncline(Number(e.target.value))}
-            aria-label={`Max incline: ${maxIncline}%`}
+            value={incline}
+            onChange={(e) => setIncline(Number(e.target.value))}
+            aria-label={`Max incline: ${incline}%`}
           />
           <div className="incline-ticks">
             <span>0%</span>
