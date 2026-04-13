@@ -67,14 +67,14 @@ class ValhallaRouteService:
         return {"success": True, "trip": trip}
 
     def _build_route_payload(
-        self,
-        *,
-        origin_lat: float,
-        origin_lng: float,
-        dest_lat: float,
-        dest_lng: float,
-        costing: str,
-        options: Dict[str, Any] | None,
+            self,
+            *,
+            origin_lat: float,
+            origin_lng: float,
+            dest_lat: float,
+            dest_lng: float,
+            costing: str,
+            options: Dict[str, Any] | None,
     ) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "locations": [
@@ -84,21 +84,42 @@ class ValhallaRouteService:
             "costing": costing,
         }
 
-        if options:
-            if "directions_options" in options:
-                payload["directions_options"] = options["directions_options"]
-            if "shape_format" in options:
-                payload["shape_format"] = options["shape_format"]
-            if "elevation_interval" in options:
-                payload["elevation_interval"] = options["elevation_interval"]
+        if not options:
+            return payload
 
-            costing_options = {
-                key: value
-                for key, value in options.items()
-                if key not in {"directions_options", "shape_format", "elevation_interval"}
-            }
-            if costing_options:
-                payload["costing_options"] = {costing: costing_options}
+        if "directions_options" in options:
+            payload["directions_options"] = options["directions_options"]
+        if "shape_format" in options:
+            payload["shape_format"] = options["shape_format"]
+        if "elevation_interval" in options:
+            payload["elevation_interval"] = options["elevation_interval"]
+        if "exclude_locations" in options:
+            payload["exclude_locations"] = options["exclude_locations"]
+
+        # Build costing_options from both possible sources, with the explicit
+        # "pedestrian" shorthand taking precedence over the generic
+        # "costing_options" block so callers don't have to nest twice.
+        costing_options: Dict[str, Any] = {}
+
+        if "costing_options" in options:
+            costing_options = dict(options["costing_options"])
+
+        if "pedestrian" in options:
+            pedestrian_opts = dict(options["pedestrian"])
+
+            # Guard: only forward `incline` to Valhalla when it is a real
+            # constraint (a positive integer strictly below the UI maximum of
+            # 30%).  A None value or the ceiling value (30) means the user has
+            # not set a limit, and we must omit the field entirely so that
+            # pedestriancost.cc keeps apply_incline_limit_ = false.
+            incline = pedestrian_opts.get("incline")
+            if incline is None or incline >= 30:
+                pedestrian_opts.pop("incline", None)
+
+            costing_options["pedestrian"] = pedestrian_opts
+
+        if costing_options:
+            payload["costing_options"] = costing_options
 
         return payload
 

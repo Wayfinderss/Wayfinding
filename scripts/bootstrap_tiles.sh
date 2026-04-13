@@ -3,6 +3,9 @@ set -euo pipefail
 
 echo "Bootstrapping Valhalla tiles..."
 
+# Ensure compiled Valhalla binaries take precedence over pip-bundled ones
+export PATH="/usr/local/bin:$PATH"
+
 cd /app
 
 ELEVATION_DIR="/app/data/valhalla/elevation_data"
@@ -40,7 +43,7 @@ fi
 if [ -z "$(find "$ELEVATION_DIR" -maxdepth 1 -name "*.hgt" 2>/dev/null | head -1)" ]; then
   echo "Downloading elevation tiles..."
   mkdir -p "$ELEVATION_DIR"
-  valhalla_build_elevation \
+  /usr/local/bin/valhalla_build_elevation \
     --from-tiles \
     --decompress \
     -o "$ELEVATION_DIR" \
@@ -60,4 +63,4 @@ else
 fi
 
 echo "Starting Valhalla service..."
-exec valhalla_service /app/data/valhalla/valhalla.json 1
+exec /usr/local/bin/valhalla_service /app/data/valhalla/valhalla.json 1
