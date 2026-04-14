@@ -871,7 +871,7 @@ const PANEL_META: Record<
 };
 
 export default function RightSidebar({ onResetBasemap, showElevation, onToggleElevation, avoidStaircases, incline, onApply }: RightSidebarProps) {
-  const [active, setActive] = useState<PanelKey>(null);
+  const [active, setActive] = useState<PanelKey>("layer");
   const [resetFired, setResetFired] = useState(false);
 
   const open = (key: Exclude<PanelKey, null>) =>
