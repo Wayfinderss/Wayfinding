@@ -82,7 +82,7 @@ export default function Map() {
   const [routeSummary, setRouteSummary] = useState<{ totalDistanceMi: number; totalTimeMin: number } | null>(null);
 
   const [activeBasemap, setTileKey] = useState(0);
-  const [showElevation, setShowElevation] = useState(false);
+  const [showElevation, setShowElevation] = useState(true);
   const [avoidStaircases, setAvoidStaircases] = useState(false);
   const [incline, setIncline] = useState<number | null>(null);
 

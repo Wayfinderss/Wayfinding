@@ -2,7 +2,7 @@
 
 > An accessibility-focused sidewalk routing application for Southwestern Pennsylvania, built on real sidewalk data from the [Southwestern Pennsylvania Commission](https://www.spcregion.org) (SPC).
 
-![Wayfinding Demo Screenshot](./static/WayfindingDemo.png)
+![Wayfinding Demo Screenshot](./static/DemoScreenshot.png)
 
 **[See Installation Instructions](#getting-started)**
 --
