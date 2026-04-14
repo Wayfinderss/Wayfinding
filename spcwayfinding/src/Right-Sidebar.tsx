@@ -51,9 +51,9 @@ const LAYERS = [
   {
     id: "elevation",
     label: "Elevation Profile",
-    desc: "Gradient shading — useful for wheelchair users (still need to link this to jack's elevation)",
+    desc: "Gradient shading — useful for wheelchair users",
     icon: "⛰",
-    enabled: false,
+    enabled: true,
     badge: null,
     badgeColor: "",
   },
