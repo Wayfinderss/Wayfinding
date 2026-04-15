@@ -217,24 +217,10 @@ class ValhallaTileBuilder:
     @staticmethod
     def _reload_valhalla() -> None:
         """
-        Send SIGHUP to the valhalla_service process to trigger a hot reload.
-        Valhalla re-reads its tile directory on SIGHUP without dropping
-        in-flight requests.
+        No-op: valhalla_service is managed by rebuild_server.py which calls
+        restart_valhalla() directly after build_and_swap() completes.
         """
-        try:
-            result = subprocess.run(
-                ["pgrep", "-x", "valhalla_service"],
-                capture_output=True, text=True,
-            )
-            pids = [int(p) for p in result.stdout.strip().splitlines() if p]
-            if not pids:
-                print("⚠ valhalla_service process not found — skipping reload signal")
-                return
-            for pid in pids:
-                os.kill(pid, signal.SIGHUP)
-                print(f"  Sent SIGHUP to valhalla_service (pid {pid})")
-        except Exception as exc:
-            print(f"⚠ Failed to reload Valhalla: {exc}")
+        pass
 
     # ------------------------------------------------------------------
     # Merge helpers

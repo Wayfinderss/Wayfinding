@@ -3,7 +3,8 @@ CRUD operations for individual ways in the Valhalla network.
 
 Each operation:
   1. Updates the canonical network.osm.pbf on disk
-  2. Triggers a full Valhalla tile rebuild
+  2. Triggers a full Valhalla tile rebuild via the internal rebuild server
+     running inside the valhalla container (POST http://valhalla:9001/rebuild)
 
 Flow per operation:
   Add / Update  →  convert feature → OSM → PBF, merge into network PBF, rebuild tiles
@@ -14,25 +15,27 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from wayfinder.config.paths import (
-    NETWORK_OSM_PATH,
     NETWORK_PBF_PATH,
     NODE_REGISTRY_PATH,
-    TILES_DIR,
-    VALHALLA_CONFIG_PATH,
     VALHALLA_DATA_DIR,
 )
 from wayfinder.domain.geojson_to_osm_service import GeoJSONToOSMService
 from wayfinder.domain.node_registry import NodeRegistry
-from engines.valhalla_engine.tile_builder import ValhallaTileBuilder
+
+# URL of the internal rebuild server running in the valhalla container.
+# Override via environment variable if your service name or port differs.
+import os
+VALHALLA_REBUILD_URL = os.environ.get(
+    "VALHALLA_REBUILD_URL", "http://valhalla:9001/rebuild"
+)
 
 
 class WayCRUDService:
-
-    def __init__(self):
-        self._tile_builder = ValhallaTileBuilder(TILES_DIR)
 
     # ------------------------------------------------------------------
     # Public API
@@ -128,14 +131,15 @@ class WayCRUDService:
 
         with tempfile.TemporaryDirectory(dir=VALHALLA_DATA_DIR) as tmp:
             filtered = Path(tmp) / "filtered.pbf"
-            # tags-filter with a negated ID expression drops the target way
+            # osmium removeid drops the specified way (and any nodes/relations
+            # that become orphaned), keeping everything else intact.
             subprocess.run(
                 [
-                    "osmium", "tags-filter",
+                    "osmium", "removeid",
                     str(NETWORK_PBF_PATH),
-                    f"w/id!={way_id}",
+                    f"w{way_id}",
                     "-o", str(filtered),
-                    "--overwrite",
+                    "-O",
                 ],
                 check=True,
             )
@@ -152,14 +156,31 @@ class WayCRUDService:
 
     def _rebuild_tiles(self) -> None:
         """
-        Rebuild tiles into a staging directory, then atomically swap
-        into place and signal Valhalla to reload — routing stays live
-        throughout the ~2 min build.
+        Ask the valhalla container's internal rebuild server to build fresh
+        tiles and hot-reload valhalla_service.  The server serialises concurrent
+        requests with a lock so we never run two builds simultaneously.
+
+        Raises RuntimeError if the rebuild server reports failure.
         """
-        self._tile_builder.build_and_swap(
-            config_path=VALHALLA_CONFIG_PATH,
-            osm_path=NETWORK_PBF_PATH,
+        req = urllib.request.Request(
+            VALHALLA_REBUILD_URL,
+            data=b"",          # non-empty → POST
+            method="POST",
         )
+        try:
+            with urllib.request.urlopen(req, timeout=600) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(
+                        f"Rebuild server returned HTTP {resp.status}"
+                    )
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(
+                f"Rebuild server error {exc.code}: {exc.read().decode(errors='replace')}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(
+                f"Could not reach rebuild server at {VALHALLA_REBUILD_URL}: {exc.reason}"
+            ) from exc
 
     @staticmethod
     def _object_id(feature: dict) -> int:

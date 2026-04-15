@@ -32,10 +32,18 @@ services:
       min_y: "39.72"
       max_x: "-78.80"
       max_y: "41.15"
+      # Rebuild server config — paths must match your valhalla.json
+      VALHALLA_CONFIG: /app/data/valhalla/valhalla.json
+      NETWORK_PBF: /app/data/valhalla/network.osm.pbf
+      VALHALLA_TILES: /app/data/valhalla/tiles
+      VALHALLA_STAGING: /app/data/valhalla/tiles_staging
+      REBUILD_SERVER_PORT: "9001"
     volumes:
       - ./data/valhalla:/app/data/valhalla
     ports:
       - "8002:8002"
+      # Port 9001 is intentionally NOT published to the host —
+      # it is only reachable by other containers on the compose network.
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/status"]
       interval: 30s
@@ -51,6 +59,7 @@ services:
     environment:
       PYTHONPATH: /app
       VALHALLA_URL: http://valhalla:8002
+      VALHALLA_REBUILD_URL: http://valhalla:9001/rebuild
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}
       ADMIN_API_KEY: ${ADMIN_API_KEY}
       DB_BACKEND: postgres
@@ -83,8 +92,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
-    # ports:
-    #   - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
 volumes:
