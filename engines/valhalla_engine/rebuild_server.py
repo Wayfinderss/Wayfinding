@@ -82,6 +82,7 @@ def restart_valhalla() -> None:
 
 def watch_valhalla() -> None:
     """Restart valhalla_service if it exits unexpectedly."""
+    global _valhalla_proc
     while True:
         time.sleep(2)
         with _valhalla_lock:
