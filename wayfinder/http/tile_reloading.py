@@ -3,9 +3,10 @@ from pydantic import BaseModel
 from typing import Optional
 from wayfinder.domain.way_crud_service import WayCRUDService
 from wayfinder.domain.node_registry import NodeRegistry
-from wayfinder.config.paths import NODE_REGISTRY_PATH, NETWORK_PBF_PATH, VALHALLA_CONFIG_PATH
-from wayfinder.http.dependencies import require_admin
+from wayfinder.config.paths import NODE_REGISTRY_PATH
 import threading
+
+from wayfinder.http.dependencies import require_admin
 
 router = APIRouter(prefix="/ways", tags=["ways"], dependencies=[Depends(require_admin)])
 _service = WayCRUDService()
@@ -32,9 +33,8 @@ def _extract_object_id(feature: Feature) -> int:
 def _verify_object_id(object_id: int) -> int:
     """Confirm the object_id exists in the node registry."""
     with NodeRegistry(NODE_REGISTRY_PATH) as registry:
-        way_id = registry.way_id_for_object(object_id)
-        existing = registry.object_id_for_way(way_id)
-    if existing is None:
+        result = registry.lookup_way(object_id)
+    if result is None:
         raise HTTPException(status_code=404, detail=f"No way found for object_id {object_id}")
     return object_id
 
@@ -61,34 +61,12 @@ def rebuild_status():
 
 @router.get("/{object_id}")
 def lookup_way(object_id: int):
-    from wayfinder.domain.node_registry import NodeRegistry
-    from wayfinder.config.paths import NODE_REGISTRY_PATH
+    """Return stored metadata for a way by its OBJECTID."""
     with NodeRegistry(NODE_REGISTRY_PATH) as registry:
         result = registry.lookup_way(object_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"No way found for object_id {object_id}")
     return result
-
-
-def _verify_object_id(object_id: int) -> int:
-    from wayfinder.domain.node_registry import NodeRegistry
-    from wayfinder.config.paths import NODE_REGISTRY_PATH
-    with NodeRegistry(NODE_REGISTRY_PATH) as registry:
-        result = registry.lookup_way(object_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail=f"No way found for object_id {object_id}")
-    return object_id
-
-
-@router.get("/{object_id}")
-def lookup_way(object_id: int):
-    """Check whether a way exists in the registry by its OBJECTID."""
-    with NodeRegistry(NODE_REGISTRY_PATH) as registry:
-        way_id = registry.way_id_for_object(object_id)
-        existing = registry.object_id_for_way(way_id)
-    if existing is None:
-        raise HTTPException(status_code=404, detail=f"No way found for object_id {object_id}")
-    return {"object_id": object_id, "way_id": way_id}
 
 
 @router.post("/", status_code=202)
@@ -126,10 +104,5 @@ def bulk_upsert(features: list[Feature], background_tasks: BackgroundTasks):
 @router.post("/rebuild", status_code=202)
 def rebuild_tiles(background_tasks: BackgroundTasks):
     """Trigger a full tile rebuild without any OSM changes."""
-    background_tasks.add_task(
-        _run_locked,
-        _service._tile_builder.build_and_swap,
-        config_path=VALHALLA_CONFIG_PATH,
-        osm_path=NETWORK_PBF_PATH,
-    )
+    background_tasks.add_task(_run_locked, _service._rebuild_tiles)
     return {"status": "accepted"}

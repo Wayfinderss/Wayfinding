@@ -83,6 +83,8 @@ ENV PYTHONPATH=/app
 COPY scripts/bootstrap_tiles.sh /bootstrap_tiles.sh
 RUN chmod +x /bootstrap_tiles.sh
 
+COPY engines/valhalla_engine/rebuild_server.py /app/engines/valhalla_engine/rebuild_server.py
+
 EXPOSE 8002
 
 CMD ["/bootstrap_tiles.sh"]
