@@ -76,21 +76,20 @@ def add_way(feature: Feature, background_tasks: BackgroundTasks):
 
 
 @router.put("/{object_id}", status_code=202)
-def update_way(feature: Feature, background_tasks: BackgroundTasks, object_id: Optional[int] = None):
-    oid = object_id or _extract_object_id(feature)
-    _verify_object_id(oid)
-    background_tasks.add_task(_run_locked, _service.update, feature.model_dump())
-    return {"status": "accepted", "object_id": oid}
+def update_way(object_id: int, feature: Feature, background_tasks: BackgroundTasks):
+    _verify_object_id(object_id)
+    payload = feature.model_dump()
+    # Ensure the path object_id is authoritative — inject it into properties
+    payload.setdefault("properties", {})["OBJECTID"] = object_id
+    background_tasks.add_task(_run_locked, _service.update, payload)
+    return {"status": "accepted", "object_id": object_id}
 
 
 @router.delete("/{object_id}", status_code=202)
-def delete_way(background_tasks: BackgroundTasks, object_id: Optional[int] = None, feature: Optional[Feature] = None):
-    oid = object_id or (feature and _extract_object_id(feature))
-    if not oid:
-        raise HTTPException(status_code=400, detail="object_id is required for delete")
-    _verify_object_id(oid)
-    background_tasks.add_task(_run_locked, _service.delete, oid)
-    return {"status": "accepted", "object_id": oid}
+def delete_way(object_id: int, background_tasks: BackgroundTasks):
+    _verify_object_id(object_id)
+    background_tasks.add_task(_run_locked, _service.delete, object_id)
+    return {"status": "accepted", "object_id": object_id}
 
 
 @router.post("/bulk", status_code=202)
