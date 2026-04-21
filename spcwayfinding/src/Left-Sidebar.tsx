@@ -394,6 +394,8 @@ interface GeocodeResult {
     }, [errorMessage]);
     const fromDebounceRef = useRef<number | null>(null);
     const toDebounceRef = useRef<number | null>(null);
+    const fromDebounceQueryRef = useRef<string>('');
+    const toDebounceQueryRef = useRef<string>('');
 
     const handleFromChange = (query: string) => {
       setFrom(query);
@@ -405,9 +407,20 @@ interface GeocodeResult {
         return;
       }
 
+      fromDebounceQueryRef.current = query;
+      // #region agent log
+      fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:handleFromChange',message:'from debounce scheduled',data:{queryLen:query.trim().length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       fromDebounceRef.current = window.setTimeout(async () => {
+        const debouncedQuery = fromDebounceQueryRef.current;
+        // #region agent log
+        fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:fromDebounceFire',message:'from debounce callback start',data:{debouncedQuery},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         try {
-          const results = await geocodeAddress(query);
+          const results = await geocodeAddress(debouncedQuery);
+          // #region agent log
+          fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:fromDebounceAfterGeocode',message:'from geocode returned in debounce',data:{debouncedQuery,resultCount:results.length},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           setFromSuggestions(results);
           setShowFromSuggestions(true);
         } catch {
@@ -427,9 +440,14 @@ interface GeocodeResult {
         return;
       }
 
+      toDebounceQueryRef.current = query;
       toDebounceRef.current = window.setTimeout(async () => {
+        const debouncedQuery = toDebounceQueryRef.current;
         try {
-          const results = await geocodeAddress(query);
+          const results = await geocodeAddress(debouncedQuery);
+          // #region agent log
+          fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:toDebounceAfterGeocode',message:'to geocode returned in debounce',data:{debouncedQuery,resultCount:results.length},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           setToSuggestions(results);
           setShowToSuggestions(true);
         } catch {
@@ -440,12 +458,18 @@ interface GeocodeResult {
     };
 
     const selectFromSuggestion = (suggestion: GeocodeResult) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:selectFromSuggestion',message:'from suggestion selected',data:{labelLen:suggestion.label.length,pendingFromTimeout:fromDebounceRef.current!=null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setFrom(suggestion.label);
       setFromSuggestions([]);
       setShowFromSuggestions(false);
     };
 
     const selectToSuggestion = (suggestion: GeocodeResult) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'A',location:'Left-Sidebar.tsx:selectToSuggestion',message:'to suggestion selected',data:{labelLen:suggestion.label.length,pendingToTimeout:toDebounceRef.current!=null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setTo(suggestion.label);
       setToSuggestions([]);
       setShowToSuggestions(false);
@@ -510,7 +534,12 @@ interface GeocodeResult {
                     onChange={e => handleFromChange(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSearch()}
                     onFocus={() => from.length >= 3 && setShowFromSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowFromSuggestions(false), 100)}
+                    onBlur={() => {
+                      // #region agent log
+                      fetch('http://127.0.0.1:7474/ingest/cbb4e156-877f-48eb-bb13-2e0ec5f401f7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3c79ea'},body:JSON.stringify({sessionId:'3c79ea',runId:'pre-fix',hypothesisId:'B',location:'Left-Sidebar.tsx:fromInputBlur',message:'from input blur',data:{fromLen:from.length},timestamp:Date.now()})}).catch(()=>{});
+                      // #endregion
+                      setTimeout(() => setShowFromSuggestions(false), 100);
+                    }}
                   />
                   {showFromSuggestions && fromSuggestions.length > 0 && (
                     <ul className="suggestions">
