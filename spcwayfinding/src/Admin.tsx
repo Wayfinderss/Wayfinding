@@ -101,10 +101,12 @@ export default function Admin() {
 
   const handleUpdate = async () => {
     setUpdateMsg(''); setUpdateError('')
-    const feature = parseFeature(updateJson)
+    const feature = parseFeature(updateJson) as any
     if (!feature) { setUpdateError('Invalid JSON'); return }
+    const oid = feature?.properties?.OBJECTID ?? feature?.properties?.objectid
+    if (!oid) { setUpdateError('Feature has no OBJECTID in properties'); return }
     try {
-      const res = await fetch(`${API_BASE}/ways/`, { method: 'PUT', headers, body: JSON.stringify(feature) })
+      const res = await fetch(`${API_BASE}/ways/${oid}`, { method: 'PUT', headers, body: JSON.stringify(feature) })
       const data = await res.json()
       if (!res.ok) setUpdateError(data.detail ?? 'Error')
       else setUpdateMsg(`Accepted — tile rebuild queued (object_id: ${data.object_id})`)
