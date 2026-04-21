@@ -16,4 +16,8 @@ dependencies = [
     "numpy>=2",
     "httpx>=0.28.1",
     "shapely>=2.1.2",
+    "pytest>=9.0.3",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

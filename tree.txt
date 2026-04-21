@@ -81,6 +81,7 @@
 │   └── valhalla_engine
 │       ├── adapter.py
 │       ├── config_builder.py
+│       ├── rebuild_server.py
 │       └── tile_builder.py
 ├── integrations
 │   └── logger
@@ -12451,7 +12452,6 @@
 │   │   ├── Right-Sidebar.tsx
 │   │   ├── RouteLayer.tsx
 │   │   ├── RouteMarkers.tsx
-│   │   ├── Sidebar.tsx
 │   │   ├── assets
 │   │   │   ├── SPC_Blk.png
 │   │   │   ├── SPC_RGB.png
@@ -12468,6 +12468,7 @@
 │   ├── tsconfig.node.json
 │   └── vite.config.ts
 ├── static
+│   ├── DemoScreenshot.png
 │   ├── WayfindingDemo.png
 │   └── index.html
 ├── tree.txt
@@ -12504,4 +12505,4 @@
     │   └── tile_reloading.py
     └── main.py
 
-1069 directories, 11436 files
+1069 directories, 11437 files
