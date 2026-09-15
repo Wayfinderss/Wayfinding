@@ -292,6 +292,9 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
+Vahalla engine is licensed under MIT. Source code is from [https://github.com/valhalla/valhalla](https://github.com/valhalla/valhalla).
+The rest of this project is licensed under GNU GPL v.3. 
+
 ---
 
 ## Acknowledgments
